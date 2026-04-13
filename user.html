@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crab Monitoring System</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@600&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'DM Sans', sans-serif; background: #f5f7fa; color: #333; min-height: 100vh; }
+        .page-view { display: none; }
+        .page-view.active { display: block; }
+        #loginView { display: none; }
+        #loginView.active { display: flex; }
+        #loginView {
+            background: #0a1628; min-height: 100vh; align-items: center;
+            justify-content: center; padding: 1.5rem; overflow: hidden; position: relative;
+        }
+        .bg-grad {
+            position: fixed; inset: 0; z-index: 0;
+            background: radial-gradient(ellipse 80% 60% at 20% 0%, rgba(0,80,160,0.45) 0%, transparent 60%),
+                        radial-gradient(ellipse 60% 70% at 85% 100%, rgba(0,50,120,0.40) 0%, transparent 55%), #060f1e;
+        }
+        .bubbles { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+        .bubble {
+            position: absolute; bottom: -150px; border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, rgba(100,180,255,0.18), rgba(60,120,220,0.06));
+            border: 1px solid rgba(100,180,255,0.22); animation: rise linear infinite;
+        }
+        .bubble:nth-child(1)  { width:40px;  height:40px;  left:5%;   animation-duration:9s;   animation-delay:0s;   }
+        .bubble:nth-child(2)  { width:20px;  height:20px;  left:12%;  animation-duration:7s;   animation-delay:1.5s; }
+        .bubble:nth-child(3)  { width:60px;  height:60px;  left:20%;  animation-duration:11s;  animation-delay:0.5s; }
+        .bubble:nth-child(4)  { width:30px;  height:30px;  left:30%;  animation-duration:8s;   animation-delay:3s;   }
+        .bubble:nth-child(5)  { width:80px;  height:80px;  left:40%;  animation-duration:13s;  animation-delay:1s;   }
+        .bubble:nth-child(6)  { width:25px;  height:25px;  left:50%;  animation-duration:7.5s; animation-delay:2s;   }
+        .bubble:nth-child(7)  { width:50px;  height:50px;  left:60%;  animation-duration:10s;  animation-delay:0.8s; }
+        .bubble:nth-child(8)  { width:15px;  height:15px;  left:70%;  animation-duration:6.5s; animation-delay:2.5s; }
+        .bubble:nth-child(9)  { width:70px;  height:70px;  left:80%;  animation-duration:12s;  animation-delay:1.2s; }
+        .bubble:nth-child(10) { width:35px;  height:35px;  left:90%;  animation-duration:8.5s; animation-delay:0.3s; }
+        .bubble:nth-child(11) { width:22px;  height:22px;  left:8%;   animation-duration:7s;   animation-delay:4s;   }
+        .bubble:nth-child(12) { width:55px;  height:55px;  left:25%;  animation-duration:11s;  animation-delay:3.5s; }
+        .bubble:nth-child(13) { width:18px;  height:18px;  left:55%;  animation-duration:6s;   animation-delay:1.8s; }
+        .bubble:nth-child(14) { width:45px;  height:45px;  left:75%;  animation-duration:9.5s; animation-delay:2.8s; }
+        .bubble:nth-child(15) { width:28px;  height:28px;  left:95%;  animation-duration:8s;   animation-delay:0.6s; }
+        .bubble:nth-child(16) { width:16px;  height:16px;  left:35%;  animation-duration:6.5s; animation-delay:5s;   }
+        .bubble:nth-child(17) { width:38px;  height:38px;  left:65%;  animation-duration:9s;   animation-delay:4.5s; }
+        .bubble:nth-child(18) { width:24px;  height:24px;  left:48%;  animation-duration:8s;   animation-delay:3.2s; }
+        @keyframes rise {
+            0%   { transform:translateY(0) translateX(0);   opacity:0; }
+            10%  { opacity:1; }
+            90%  { opacity:0.7; }
+            100% { transform:translateY(-110vh) translateX(25px); opacity:0; }
+        }
+        .login-page { position:relative; z-index:10; width:100%; max-width:390px; }
+        .login-card {
+            background:#ffffff; border:1px solid rgba(255,255,255,0.9); border-radius:20px;
+            padding:2.5rem 2.25rem 2rem; box-shadow:0 8px 48px rgba(0,0,0,0.5);
+        }
+        .brand { text-align:center; margin-bottom:2rem; }
+        .crab-icon { font-size:2.5rem; display:block; margin-bottom:0.75rem; }
+        .brand-title { font-family:'IBM Plex Mono',monospace; font-size:1.05rem; font-weight:600; color:#1a2a3a; }
+        .brand-sub { font-size:0.76rem; color:#7a8aaa; margin-top:0.2rem; font-weight:300; }
+        .err-msg { display:none; background:#fff0f0; border:1px solid #f5c6c6; border-radius:8px; padding:0.6rem 0.85rem; font-size:0.8rem; color:#c0392b; margin-bottom:1.1rem; }
+        .err-msg.show { display:block; }
+        .field { margin-bottom:1rem; }
+        .field-label { display:block; font-size:0.72rem; font-weight:500; color:#4a5a70; margin-bottom:0.4rem; letter-spacing:0.3px; }
+        .field-wrap { position:relative; }
+        .field-input {
+            width:100%; padding:0.72rem 2.5rem 0.72rem 0.95rem;
+            background:rgba(100,150,220,0.08); border:1.5px solid rgba(100,150,220,0.2);
+            border-radius:10px; font-family:'DM Sans',sans-serif; font-size:0.92rem; color:#1a2a3a;
+            outline:none; transition:border-color .18s, box-shadow .18s, background .18s;
+        }
+        .field-input::placeholder { color:#b0bcd0; }
+        .field-input:focus { border-color:#2e6fbc; background:rgba(46,111,188,0.07); box-shadow:0 0 0 3px rgba(46,111,188,0.12); }
+        .field-input.shake { animation:shake .35s ease; border-color:rgba(239,68,68,0.6); }
+        @keyframes shake { 0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)} }
+        .eye-btn { position:absolute; right:11px; top:50%; transform:translateY(-50%); background:none; border:none; color:#b0bcd0; font-size:0.9rem; cursor:pointer; padding:4px; transition:color .15s; }
+        .eye-btn:hover { color:#4a5a70; }
+        .signin-btn {
+            width:100%; padding:0.82rem; margin-top:0.4rem;
+            background:linear-gradient(135deg,#1a6fd4,#0e4fa3); color:#fff; border:none;
+            border-radius:10px; font-family:'DM Sans',sans-serif; font-size:0.95rem; font-weight:500;
+            cursor:pointer; transition:opacity .18s, transform .15s, box-shadow .18s;
+            box-shadow:0 4px 18px rgba(26,111,212,0.4);
+        }
+        .signin-btn:hover { opacity:0.9; box-shadow:0 6px 24px rgba(26,111,212,0.55); }
+        .signin-btn:active { transform:scale(0.99); }
+        .signin-btn:disabled { opacity:0.4; cursor:not-allowed; }
+        .btn-spin { display:inline-block; width:13px; height:13px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; margin-right:8px; vertical-align:middle; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .card-foot { margin-top:1.5rem; padding-top:1.1rem; border-top:1px solid rgba(100,150,220,0.15); font-size:0.71rem; color:#9aabbd; line-height:1.7; text-align:center; }
+        .load-overlay { position:fixed; inset:0; z-index:200; background:rgba(6,15,30,0.82); backdrop-filter:blur(10px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.85rem; opacity:0; pointer-events:none; transition:opacity .25s; }
+        .load-overlay.on { opacity:1; pointer-events:all; }
+        .load-ring { width:44px; height:44px; border:3px solid rgba(100,160,255,0.2); border-top-color:#64a0ff; border-radius:50%; animation:spin .85s linear infinite; }
+        .load-text { font-family:'IBM Plex Mono',monospace; font-size:0.88rem; font-weight:600; color:#e8f0ff; }
+        .load-dest { font-size:0.74rem; color:rgba(180,200,255,0.45); }
+
+        :root {
+            --purple-a:#667eea; --purple-b:#764ba2;
+            --green:#22c55e; --red:#ef4444; --amber:#f59e0b; --blue:#3b82f6;
+            --gray-50:#f8fafc; --gray-100:#f1f5f9; --gray-200:#e2e8f0;
+            --gray-300:#cbd5e1; --gray-400:#94a3b8; --gray-500:#64748b;
+            --gray-700:#334155; --gray-900:#0f172a;
+            --radius:12px; --shadow:0 4px 24px rgba(0,0,0,0.08);
+        }
+        .app-header {
+            background:linear-gradient(135deg,var(--purple-a) 0%,var(--purple-b) 100%);
+            color:white; padding:0.9rem 1.5rem; position:sticky; top:0; z-index:500;
+            box-shadow:0 2px 16px rgba(102,126,234,0.35);
+        }
+        .app-header-content { display:flex; align-items:center; gap:0.75rem; max-width:1400px; margin:0 auto; }
+        .app-logo { font-size:1.7rem; flex-shrink:0; }
+        .app-title { font-size:1.05rem; font-weight:700; line-height:1.2; }
+        .app-subtitle { font-size:0.73rem; opacity:0.8; }
+        .header-right { display:flex; align-items:center; gap:0.6rem; margin-left:auto; flex-wrap:nowrap; }
+        .header-nav { display:flex; gap:0.6rem; align-items:center; }
+        .nav-btn { background:rgba(255,255,255,0.15); color:white; border:1.5px solid rgba(255,255,255,0.3); padding:0.42rem 0.9rem; border-radius:8px; font-size:0.82rem; font-weight:600; text-decoration:none; cursor:pointer; transition:background .2s; display:inline-flex; align-items:center; gap:0.35rem; white-space:nowrap; font-family:inherit; }
+        .nav-btn:hover { background:rgba(255,255,255,0.25); }
+        .nav-btn.active { background:rgba(255,255,255,0.3); border-color:rgba(255,255,255,0.6); }
+        .header-user { display:flex; flex-direction:column; align-items:flex-end; padding:0 0.25rem; }
+        .header-user-name { font-weight:700; font-size:0.88rem; line-height:1.2; }
+        .header-user-role { font-size:0.72rem; opacity:0.8; }
+        .logout-btn { background:rgba(255,255,255,0.2); color:white; border:1.5px solid rgba(255,255,255,0.3); padding:0.42rem 0.9rem; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; transition:background .2s; white-space:nowrap; font-family:inherit; min-height:36px; }
+        .logout-btn:hover { background:rgba(255,255,255,0.3); }
+        .conn-pill { display:flex; align-items:center; gap:0.45rem; background:rgba(255,255,255,0.15); padding:0.28rem 0.75rem; border-radius:20px; font-size:0.75rem; white-space:nowrap; border:1px solid rgba(255,255,255,0.25); flex-shrink:0; }
+        .status-dot { width:8px; height:8px; border-radius:50%; background:#ccc; flex-shrink:0; transition:background .3s; }
+        .status-dot.connected    { background:#4ade80; box-shadow:0 0 6px #4ade80; }
+        .status-dot.disconnected { background:#f87171; }
+        .status-dot.connecting   { background:#facc15; animation:blink 1s infinite; }
+        @keyframes blink { 0%,100%{opacity:1}50%{opacity:.3} }
+        .hamburger-btn { display:none; flex-direction:column; justify-content:center; align-items:center; gap:5px; width:40px; height:40px; background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.3); border-radius:9px; cursor:pointer; flex-shrink:0; -webkit-tap-highlight-color:transparent; }
+        .hamburger-btn span { display:block; width:18px; height:2px; background:#fff; border-radius:2px; transition:.25s; }
+        .hamburger-btn.open span:nth-child(1) { transform:translateY(7px) rotate(45deg); }
+        .hamburger-btn.open span:nth-child(2) { opacity:0; }
+        .hamburger-btn.open span:nth-child(3) { transform:translateY(-7px) rotate(-45deg); }
+        .drawer-overlay { display:none; position:fixed; inset:0; z-index:700; background:rgba(0,0,0,0.4); opacity:0; pointer-events:none; transition:opacity .28s; }
+        .drawer-overlay.open { opacity:1; pointer-events:all; }
+        .mobile-drawer { display:none; flex-direction:column; position:fixed; top:0; left:0; bottom:0; width:230px; z-index:800; background:white; box-shadow:4px 0 24px rgba(0,0,0,0.15); transform:translateX(-100%); transition:transform .28s cubic-bezier(.4,0,.2,1); }
+        .mobile-drawer.open { transform:translateX(0); }
+        .drawer-hd { background:linear-gradient(135deg,var(--purple-a),var(--purple-b)); padding:1.25rem; color:white; }
+        .drawer-hd-label { font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.8px; opacity:.7; margin-bottom:.2rem; }
+        .drawer-hd-name  { font-size:1rem; font-weight:700; }
+        .drawer-hd-role  { font-size:0.75rem; opacity:.75; margin-top:.1rem; }
+        .drawer-nav-list { padding:.5rem 0; }
+        .drawer-link { display:flex; align-items:center; gap:.8rem; padding:.85rem 1.25rem; text-decoration:none; color:var(--gray-700); font-size:.9rem; font-weight:500; border-left:3px solid transparent; transition:.15s; -webkit-tap-highlight-color:transparent; background:none; border-top:none; border-right:none; border-bottom:none; width:100%; cursor:pointer; font-family:inherit; }
+        .drawer-link:hover { background:#f0f0ff; }
+        .drawer-link.active { background:#f0f0ff; color:var(--purple-a); border-left-color:var(--purple-a); font-weight:700; }
+        .drawer-link-icon { font-size:1rem; width:22px; text-align:center; }
+        .drawer-logout { color:var(--red) !important; font-weight:600 !important; margin-bottom:.5rem; }
+        .toast { position:fixed; bottom:1.25rem; right:1rem; background:#1e293b; color:white; padding:.75rem 1.2rem; border-radius:9px; font-size:.85rem; z-index:9999; transform:translateY(80px); opacity:0; transition:all .3s; max-width:340px; box-shadow:0 6px 24px rgba(0,0,0,0.2); }
+        .toast.show    { transform:translateY(0); opacity:1; }
+        .toast.success { background:#15803d; }
+        .toast.error   { background:#b91c1c; }
+        .toast.info    { background:var(--purple-a); }
+
+        .main-container { max-width:1400px; margin:1.5rem auto; padding:0 1rem; }
+        .stats-section-label { font-size:.78rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.8px; margin-bottom:.6rem; margin-top:1.5rem; display:flex; align-items:center; gap:.5rem; }
+        .stats-section-label:first-child { margin-top:0; }
+        .stats-section-label::after { content:''; flex:1; height:1px; background:#e2e5eb; }
+        .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; margin-bottom:.5rem; }
+        .stats-grid-age { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:1rem; margin-bottom:2rem; }
+        .stat-card { background:white; padding:1.25rem 1.25rem 2.5rem; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08); transition:transform .3s, box-shadow .3s; cursor:pointer; position:relative; overflow:hidden; border-top:3px solid #e2e5eb; }
+        .stat-card::after { content:'👁  View Details'; position:absolute; bottom:0; left:0; right:0; background:linear-gradient(135deg,#667eea,#764ba2); color:white; text-align:center; padding:.45rem; font-size:.75rem; font-weight:600; transform:translateY(100%); transition:transform .25s; }
+        .stat-card:hover::after { transform:translateY(0); }
+        .stat-card:hover { transform:translateY(-5px); box-shadow:0 8px 25px rgba(0,0,0,0.15); }
+        .stat-card.card-healthy  { border-top-color:#28a745; }
+        .stat-card.card-dead     { border-top-color:#dc3545; }
+        .stat-card.card-sell     { border-top-color:#ffc107; }
+        .stat-card.card-sold     { border-top-color:#adb5bd; }
+        .stat-card.card-healthy::after { background:linear-gradient(135deg,#28a745,#20c997); }
+        .stat-card.card-dead::after    { background:linear-gradient(135deg,#dc3545,#a71d2a); }
+        .stat-card.card-sell::after    { background:linear-gradient(135deg,#e67e22,#ffc107); }
+        .stat-card.card-sold::after    { background:linear-gradient(135deg,#868e96,#adb5bd); }
+        .stat-card.age-days::after     { background:linear-gradient(135deg,#f093fb,#f5576c); }
+        .stat-card.age-week1::after    { background:linear-gradient(135deg,#4facfe,#00f2fe); }
+        .stat-card.age-week2::after    { background:linear-gradient(135deg,#43e97b,#38f9d7); }
+        .stat-card.age-week3plus::after{ background:linear-gradient(135deg,#fa709a,#fee140); }
+        .stat-card.age-week4::after    { background:linear-gradient(135deg,#a78bfa,#7c3aed); }
+        .stat-card.age-days,.stat-card.age-week1,.stat-card.age-week2,.stat-card.age-week3plus,.stat-card.age-week4 { padding:.85rem 1rem 2.2rem; }
+        .stat-card.age-days   { border-top:3px solid #f5576c; }
+        .stat-card.age-week1  { border-top:3px solid #4facfe; }
+        .stat-card.age-week2  { border-top:3px solid #43e97b; }
+        .stat-card.age-week3plus { border-top:3px solid #fa709a; }
+        .stat-card.age-week4  { border-top:3px solid #a78bfa; }
+        .stat-icon { font-size:2rem; margin-bottom:.75rem; }
+        .stat-title { color:#666; font-size:.85rem; margin-bottom:.4rem; }
+        .stat-value { font-size:1.75rem; font-weight:700; color:#333; margin-bottom:.4rem; }
+        .stat-change { font-size:.8rem; font-weight:500; }
+        .stat-change.positive { color:#28a745; } .stat-change.negative { color:#dc3545; }
+        .stat-change.neutral  { color:#6c757d; } .stat-change.age-info  { color:#667eea; }
+        .stat-card.age-days .stat-icon,.stat-card.age-week1 .stat-icon,.stat-card.age-week2 .stat-icon,.stat-card.age-week3plus .stat-icon,.stat-card.age-week4 .stat-icon { font-size:1.5rem; margin-bottom:.4rem; }
+        .stat-card.age-days .stat-title,.stat-card.age-week1 .stat-title,.stat-card.age-week2 .stat-title,.stat-card.age-week3plus .stat-title,.stat-card.age-week4 .stat-title { font-size:.72rem; margin-bottom:.25rem; }
+        .stat-card.age-days .stat-value,.stat-card.age-week1 .stat-value,.stat-card.age-week2 .stat-value,.stat-card.age-week3plus .stat-value,.stat-card.age-week4 .stat-value { font-size:1.5rem; margin-bottom:.25rem; }
+        .stat-card.age-days .stat-change,.stat-card.age-week1 .stat-change,.stat-card.age-week2 .stat-change,.stat-card.age-week3plus .stat-change,.stat-card.age-week4 .stat-change { font-size:.72rem; }
+        .age-badge { display:inline-block; font-size:.7rem; font-weight:700; padding:.15rem .55rem; border-radius:20px; margin-left:6px; vertical-align:middle; }
+        .age-badge.days   { background:#fde8ea; color:#c0392b; } .age-badge.week1 { background:#e3f4fd; color:#0277bd; }
+        .age-badge.week2  { background:#e8faf0; color:#1b5e20; } .age-badge.week3 { background:#fff8e1; color:#f57f17; }
+        .age-badge.week4plus { background:#f3e5f5; color:#6a1b9a; }
+        .crab-data-section { margin-bottom:2rem; }
+        .crab-data-header { display:flex; flex-direction:column; align-items:flex-start; gap:.5rem; margin-bottom:1rem; }
+        .section-title { font-size:1.2rem; font-weight:700; color:#333; }
+        .add-crab-btn { background:linear-gradient(135deg,#667eea,#764ba2); color:white; border:none; padding:.6rem 1.2rem; border-radius:8px; cursor:pointer; font-weight:600; font-size:.9rem; transition:all .3s; display:flex; align-items:center; gap:.4rem; box-shadow:0 2px 8px rgba(102,126,234,0.3); min-height:44px; font-family:inherit; }
+        .add-crab-btn:hover { transform:translateY(-2px); box-shadow:0 5px 15px rgba(102,126,234,0.4); }
+        .crab-grid { display:flex; flex-wrap:nowrap; gap:1rem; overflow-x:auto; padding-bottom:.75rem; -webkit-overflow-scrolling:touch; }
+        .crab-grid .crab-card { flex:0 0 160px; min-width:160px; }
+        .rack-group { margin-bottom:1.5rem; }
+        .rack-group:last-child { margin-bottom:0; }
+        .rack-group-label { font-size:.72rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.8px; margin-bottom:.6rem; display:flex; align-items:center; gap:.5rem; }
+        .rack-group-label::after { content:''; flex:1; height:1px; background:#e2e5eb; }
+        .rack-group-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:1rem; }
+        .crab-card { background:white; border-radius:12px; padding:1rem; box-shadow:0 4px 15px rgba(0,0,0,0.08); cursor:default; transition:transform .2s, box-shadow .2s; }
+        .crab-card:hover { transform:translateY(-3px); box-shadow:0 8px 20px rgba(0,0,0,0.12); }
+        .crab-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem; }
+        .crab-id { font-weight:700; font-size:.95rem; }
+        .crab-status { display:inline-block; padding:.25rem .65rem; border-radius:20px; font-size:.78rem; font-weight:600; }
+        .status-healthy      { background:#d4edda; color:#155724; }
+        .status-readytosell  { background:#fff3cd; color:#856404; }
+        .status-dead         { background:#f8d7da; color:#721c24; }
+        .status-sold         { background:#e2e3e5; color:#495057; }
+        .crab-age-display { font-size:.72rem; font-weight:700; margin-top:.35rem; padding:.2rem .55rem; border-radius:20px; display:inline-block; }
+        .crab-age-display.days    { background:#fde8ea; color:#c0392b; }
+        .crab-age-display.week1   { background:#e3f4fd; color:#0277bd; }
+        .crab-age-display.week2   { background:#e8faf0; color:#1b5e20; }
+        .crab-age-display.week3   { background:#fff8e1; color:#f57f17; }
+        .crab-age-display.week4plus { background:#f3e5f5; color:#6a1b9a; }
+        .view-more-wrap { display:flex; justify-content:center; margin-top:1rem; }
+        .view-more-btn { background:white; color:#667eea; border:2px solid #667eea; padding:.55rem 1.5rem; border-radius:8px; cursor:pointer; font-weight:600; font-size:.9rem; transition:all .25s; display:flex; align-items:center; gap:.5rem; min-height:44px; font-family:inherit; }
+        .view-more-btn:hover { background:#667eea; color:white; }
+        .allboxes-modal-content { background:#fefefe; margin:3% auto; padding:0; border-radius:16px; width:92%; max-width:900px; max-height:88vh; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.3); animation:slideUp .3s ease; display:flex; flex-direction:column; }
+        .allboxes-header { background:linear-gradient(135deg,#667eea,#764ba2); color:white; padding:1.25rem 1.5rem; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
+        .allboxes-header .modal-title { font-size:1.1rem; font-weight:700; }
+        .allboxes-header .close-x { color:rgba(255,255,255,0.75); font-size:26px; cursor:pointer; line-height:1; min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; }
+        .allboxes-header .close-x:hover { color:white; }
+        .allboxes-search { padding:.85rem 1.25rem; border-bottom:1px solid #eee; background:#fafafa; flex-shrink:0; }
+        .allboxes-search input { width:100%; padding:.6rem 1rem; border:2px solid #e1e1e1; border-radius:8px; font-size:16px; }
+        .allboxes-search input:focus { outline:none; border-color:#667eea; }
+        .allboxes-body { padding:1.25rem; overflow-y:auto; flex:1; -webkit-overflow-scrolling:touch; }
+        .allboxes-grid { display:block; }
+        .content-grid { display:grid; grid-template-columns:2fr 1fr; gap:2rem; margin-bottom:2rem; }
+        .card { background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08); overflow:hidden; }
+        .card-header { background:linear-gradient(135deg,#667eea,#764ba2); color:white; padding:1rem 1.5rem; font-weight:600; display:flex; justify-content:space-between; align-items:center; font-size:.95rem; }
+        .card-content { padding:1.25rem; }
+        .recent-observations { max-height:400px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+        .observation-item { display:flex; justify-content:space-between; align-items:center; padding:.85rem 0; border-bottom:1px solid #eee; gap:.75rem; }
+        .observation-item:last-child { border-bottom:none; }
+        .observation-info { flex:1; min-width:0; }
+        .observation-species { font-weight:600; margin-bottom:.25rem; font-size:.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .observation-details { font-size:.8rem; color:#666; }
+        .observation-status { padding:.25rem .65rem; border-radius:20px; font-size:.78rem; font-weight:500; flex-shrink:0; }
+        .origin-item { margin-bottom:1rem; }
+        .origin-item:last-child { margin-bottom:0; }
+        .origin-top-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:.35rem; }
+        .origin-name { font-size:.88rem; font-weight:600; color:#333; }
+        .origin-meta { display:flex; align-items:center; gap:.5rem; }
+        .origin-count { font-size:.8rem; font-weight:700; color:#667eea; }
+        .origin-pct   { font-size:.72rem; color:#aaa; }
+        .origin-bar-wrap { background:#f0f0f5; border-radius:6px; height:7px; overflow:hidden; }
+        .origin-bar-fill { height:100%; border-radius:6px; transition:width .6s; }
+        .origin-types { margin-top:.3rem; display:flex; gap:.3rem; flex-wrap:wrap; }
+        .origin-type-tag { font-size:.65rem; font-weight:700; padding:.1rem .4rem; border-radius:8px; background:#f0f4ff; color:#667eea; }
+        .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.45); animation:bgFadeIn .2s; overflow-y:auto; }
+        @keyframes bgFadeIn { from{opacity:0}to{opacity:1} }
+        .modal-content { background:#fefefe; margin:3% auto; padding:1.5rem; border-radius:12px; width:92%; max-width:600px; max-height:90vh; overflow-y:auto; box-shadow:0 10px 30px rgba(0,0,0,0.3); animation:slideUp .3s; -webkit-overflow-scrolling:touch; }
+        @keyframes slideUp { from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1} }
+        .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:2px solid #eee; }
+        .modal-title { font-size:1.3rem; font-weight:600; color:#333; }
+        .close-x { color:#aaa; font-size:28px; font-weight:bold; cursor:pointer; transition:color .3s; line-height:1; min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; }
+        .close-x:hover { color:#000; }
+        .detail-modal-content { background:#fefefe; margin:3% auto; padding:0; border-radius:16px; width:92%; max-width:720px; max-height:88vh; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.3); animation:slideUp .3s; display:flex; flex-direction:column; }
+        .detail-modal-header { padding:1.25rem 1.5rem; color:white; display:flex; justify-content:space-between; align-items:flex-start; flex-shrink:0; }
+        .detail-modal-header.total     { background:linear-gradient(135deg,#667eea,#764ba2); }
+        .detail-modal-header.healthy   { background:linear-gradient(135deg,#28a745,#20c997); }
+        .detail-modal-header.mortality { background:linear-gradient(135deg,#dc3545,#a71d2a); }
+        .detail-modal-header.sell      { background:linear-gradient(135deg,#e67e22,#f39c12); }
+        .detail-modal-header.sold      { background:linear-gradient(135deg,#495057,#6c757d); }
+        .detail-modal-header.age-days  { background:linear-gradient(135deg,#f093fb,#f5576c); }
+        .detail-modal-header.age-week1 { background:linear-gradient(135deg,#4facfe,#00f2fe); }
+        .detail-modal-header.age-week2 { background:linear-gradient(135deg,#43e97b,#38f9d7); }
+        .detail-modal-header.age-week3plus { background:linear-gradient(135deg,#fa709a,#fee140); }
+        .detail-modal-header.age-week4 { background:linear-gradient(135deg,#a78bfa,#7c3aed); }
+        .detail-modal-header .modal-title { font-size:1.2rem; font-weight:700; }
+        .detail-modal-header .modal-subtitle { font-size:.82rem; opacity:.85; margin-top:.3rem; }
+        .detail-modal-header .close-x { color:rgba(255,255,255,0.7); font-size:26px; }
+        .detail-modal-header .close-x:hover { color:white; }
+        .detail-modal-search { padding:.9rem 1.25rem; border-bottom:1px solid #eee; background:#fafafa; flex-shrink:0; }
+        .detail-modal-search input { width:100%; padding:.6rem 1rem; border:2px solid #e1e1e1; border-radius:8px; font-size:16px; }
+        .detail-modal-search input:focus { outline:none; border-color:#667eea; }
+        .detail-modal-body { padding:1rem 1.25rem 1.5rem; overflow-y:auto; flex:1; -webkit-overflow-scrolling:touch; }
+        .crab-detail-item { background:white; border:1px solid #e8e8e8; border-radius:12px; padding:1rem; margin-bottom:.75rem; transition:box-shadow .2s, transform .15s; border-left:5px solid #667eea; }
+        .crab-detail-item:hover { box-shadow:0 6px 20px rgba(0,0,0,0.1); transform:translateX(3px); }
+        .crab-detail-item.healthy    { border-left-color:#28a745; } .crab-detail-item.dead  { border-left-color:#dc3545; }
+        .crab-detail-item.sell       { border-left-color:#e67e22; } .crab-detail-item.sold  { border-left-color:#6c757d; }
+        .crab-detail-item.total      { border-left-color:#667eea; }
+        .crab-detail-item.age-days   { border-left-color:#f5576c; } .crab-detail-item.age-week1 { border-left-color:#4facfe; }
+        .crab-detail-item.age-week2  { border-left-color:#43e97b; } .crab-detail-item.age-week3plus { border-left-color:#fa709a; }
+        .crab-detail-item.age-week4  { border-left-color:#a78bfa; }
+        .crab-detail-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:.9rem; gap:.5rem; }
+        .crab-detail-box  { font-size:1.1rem; font-weight:700; color:#222; }
+        .crab-detail-type { font-size:.8rem; color:#888; margin-top:.2rem; }
+        .crab-detail-badge { padding:.25rem .65rem; border-radius:20px; font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.4px; flex-shrink:0; }
+        .badge-healthy { background:#d4edda; color:#155724; } .badge-dead    { background:#f8d7da; color:#721c24; }
+        .badge-sell    { background:#fff3cd; color:#856404; } .badge-sold    { background:#e2e3e5; color:#495057; }
+        .badge-unknown { background:#e2e3e5; color:#495057; }
+        .crab-detail-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.5rem; }
+        .crab-detail-field { background:#f8f9fa; border-radius:8px; padding:.55rem .75rem; }
+        .crab-detail-field-label { font-size:.68rem; color:#999; text-transform:uppercase; letter-spacing:.5px; margin-bottom:.2rem; }
+        .crab-detail-field-value { font-size:.82rem; font-weight:600; color:#333; }
+        .crab-detail-notes { margin-top:.75rem; padding:.6rem .75rem; background:#fffbf0; border-radius:8px; border-left:3px solid #ffc107; font-size:.8rem; color:#666; }
+        .crab-detail-field.age-highlight { background:#f0f4ff; border:1px solid #c7d2fe; }
+        .crab-detail-field.age-highlight .crab-detail-field-value { color:#3730a3; }
+        .crab-detail-field.sold-highlight { background:#f0fff4; border:1px solid #b7dfc4; }
+        .crab-detail-field.sold-highlight .crab-detail-field-label { color:#3d8b6e; }
+        .crab-detail-field.sold-highlight .crab-detail-field-value { color:#155724; }
+        .crab-detail-field.dead-highlight { background:#fff5f5; border:1px solid #f5c6cb; }
+        .crab-detail-field.dead-highlight .crab-detail-field-label { color:#a71d2a; }
+        .crab-detail-field.dead-highlight .crab-detail-field-value { color:#721c24; }
+        .data-form { display:grid; gap:1rem; }
+        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+        .form-group { margin-bottom:.5rem; }
+        .form-group label { display:block; margin-bottom:.5rem; color:#333; font-weight:500; font-size:.9rem; }
+        .form-group input,.form-group select,.form-group textarea { width:100%; padding:.75rem; border:2px solid #e1e1e1; border-radius:8px; font-size:16px; transition:border-color .3s; font-family:inherit; }
+        .form-group input:focus,.form-group select:focus,.form-group textarea:focus { outline:none; border-color:#667eea; }
+        .form-group textarea { resize:vertical; min-height:90px; }
+        .age-preview { margin-top:.4rem; font-size:.82rem; color:#667eea; font-weight:600; min-height:1.2em; }
+        .form-section { padding:1.25rem; margin-bottom:1.25rem; border:1px solid #e1e1e1; border-radius:12px; background:#fafafa; }
+        .form-section h3 { margin:0 0 1rem 0; padding-bottom:.75rem; border-bottom:2px solid #e1e1e1; font-weight:600; font-size:1rem; }
+        .form-actions { display:flex; gap:1rem; justify-content:flex-end; margin-top:1.5rem; flex-wrap:wrap; }
+        .btn { padding:.75rem 1.5rem; border:none; border-radius:8px; font-size:.95rem; font-weight:500; cursor:pointer; transition:all .3s; min-height:44px; font-family:inherit; }
+        .btn-primary { background:linear-gradient(135deg,#667eea,#764ba2); color:white; }
+        .btn-primary:hover { transform:translateY(-2px); box-shadow:0 5px 15px rgba(102,126,234,0.3); }
+        .btn-secondary { background:#f8f9fa; color:#333; border:2px solid #e1e1e1; }
+        .btn-secondary:hover { background:#e9ecef; }
+        .btn:disabled { opacity:.6; cursor:not-allowed; transform:none !important; }
+        .spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,0.4); border-radius:50%; border-top-color:white; animation:spin .8s linear infinite; margin-right:.5rem; vertical-align:middle; }
+        .boxno-wrap { position:relative; }
+        .boxno-dropdown { position:absolute; top:calc(100% + 3px); left:0; right:0; background:white; border:2px solid #667eea; border-radius:10px; max-height:200px; overflow-y:auto; z-index:3000; box-shadow:0 8px 24px rgba(0,0,0,0.14); display:none; -webkit-overflow-scrolling:touch; }
+        .boxno-dropdown.open { display:block; }
+        .boxno-section-label { padding:.4rem .85rem; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#999; background:#f8f9fa; border-bottom:1px solid #eee; position:sticky; top:0; }
+        .boxno-option { padding:.65rem .85rem; cursor:pointer; font-size:.9rem; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f5f5f5; transition:background .12s; min-height:44px; }
+        .boxno-option:last-child { border-bottom:none; }
+        .boxno-option:hover { background:#f0f0ff; }
+        .box-tag { font-size:.68rem; padding:.15rem .55rem; border-radius:10px; font-weight:700; }
+        .tag-empty    { background:#e8f5e9; color:#2e7d32; }
+        .tag-occupied { background:#fdecea; color:#c62828; }
+        .empty-state { text-align:center; color:#999; padding:2rem; font-size:.9rem; }
+
+        /* ── HISTORY STYLES ── */
+        .hist-main { max-width:1400px; margin:1.5rem auto; padding:0 1.25rem; }
+        .controls { background:white; border-radius:var(--radius); box-shadow:var(--shadow); padding:1rem 1.25rem; display:flex; gap:.75rem; flex-wrap:wrap; align-items:flex-end; margin-bottom:1.25rem; }
+        .search-wrap { flex:1; min-width:200px; position:relative; }
+        .search-wrap input { width:100%; padding:.6rem .9rem .6rem 2.4rem; border:2px solid var(--gray-200); border-radius:9px; font-size:.9rem; font-family:inherit; outline:none; transition:border-color .2s; }
+        .search-wrap input:focus { border-color:var(--purple-a); }
+        .search-icon { position:absolute; left:.8rem; top:50%; transform:translateY(-50%); font-size:1rem; pointer-events:none; }
+        .filters { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+        .filters select { padding:.6rem .85rem; border:2px solid var(--gray-200); border-radius:9px; font-size:.82rem; background:white; cursor:pointer; font-family:inherit; outline:none; min-height:40px; transition:border-color .2s; }
+        .filters select:focus { border-color:var(--purple-a); }
+        .btn-export { background:linear-gradient(135deg,var(--purple-a),var(--purple-b)); color:white; border:none; padding:.6rem 1.1rem; border-radius:9px; font-size:.82rem; font-weight:700; cursor:pointer; font-family:inherit; min-height:40px; box-shadow:0 2px 8px rgba(102,126,234,0.3); transition:transform .2s, box-shadow .2s; white-space:nowrap; }
+        .btn-export:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(102,126,234,0.4); }
+        .hist-card { background:white; border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+        .hist-card-hd { background:linear-gradient(135deg,var(--purple-a),var(--purple-b)); color:white; padding:.9rem 1.25rem; display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:.9rem; }
+        .count-badge { background:rgba(255,255,255,0.2); padding:.18rem .65rem; border-radius:20px; font-size:.75rem; font-weight:700; }
+        .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+        .table-wrap::-webkit-scrollbar { height:7px; }
+        .table-wrap::-webkit-scrollbar-track { background:#f0f4ff; border-radius:99px; }
+        .table-wrap::-webkit-scrollbar-thumb { background:linear-gradient(90deg,var(--purple-a),var(--purple-b)); border-radius:99px; }
+        .table-wrap { scrollbar-width:thin; scrollbar-color:var(--purple-a) #e0e7ff; }
+        .admin-table { width:100%; border-collapse:collapse; }
+        .admin-table thead th { background:var(--gray-50); color:var(--gray-500); font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; padding:.65rem .9rem; border-bottom:2px solid var(--gray-200); text-align:left; white-space:nowrap; }
+        .admin-table tbody tr { border-bottom:1px solid var(--gray-100); transition:background .15s; }
+        .admin-table tbody tr:last-child { border-bottom:none; }
+        .admin-table tbody tr:hover { background:#f5f0ff; }
+        .admin-table td { padding:.65rem .9rem; font-size:.8rem; vertical-align:middle; }
+        .admin-table td.bold { font-weight:700; font-size:.88rem; }
+        .row-added   { border-left:3px solid var(--green); }
+        .row-updated { border-left:3px solid var(--purple-a); }
+        .row-sold    { border-left:3px solid var(--gray-400); background:#fafafa; }
+        .row-removed { border-left:3px solid var(--red); background:#fff8f8; }
+        .row-dead    { border-left:3px solid #92400e; background:#fffbf5; }
+        .group-header td { background:linear-gradient(135deg,#f0f4ff,#faf5ff); border-top:2px solid #c7d2fe; border-bottom:1px solid #ddd6fe; font-size:.72rem; font-weight:700; color:#4338ca; padding:.4rem .9rem; letter-spacing:.3px; }
+        .action-badge { display:inline-flex; align-items:center; gap:.25rem; padding:.18rem .6rem; border-radius:20px; font-size:.68rem; font-weight:700; text-transform:uppercase; white-space:nowrap; }
+        .action-added   { background:#dcfce7; color:#15803d; } .action-updated { background:#ede9fe; color:#6d28d9; }
+        .action-sold    { background:#f1f5f9; color:#475569; } .action-removed { background:#fee2e2; color:#b91c1c; }
+        .action-dead    { background:#fef3c7; color:#92400e; }
+        .status-pill { display:inline-block; padding:.15rem .55rem; border-radius:20px; font-size:.7rem; font-weight:700; }
+        .wdiff { font-size:.7rem; } .wdiff.pos { color:var(--green); } .wdiff.neg { color:var(--red); }
+        /* changelog pill shown in updated rows */
+        .changelog-wrap { margin-top:.35rem; display:flex; flex-wrap:wrap; gap:.25rem; }
+        .changelog-pill { font-size:.62rem; font-weight:700; padding:.1rem .45rem; border-radius:8px; background:#ede9fe; color:#6d28d9; white-space:nowrap; }
+        .pagination-wrap { display:flex; align-items:center; justify-content:space-between; padding:.85rem 1.25rem; border-top:1px solid var(--gray-100); flex-wrap:wrap; gap:.6rem; }
+        .page-info { font-size:.8rem; color:var(--gray-500); font-weight:500; }
+        .page-info strong { color:var(--gray-900); }
+        .page-controls { display:flex; align-items:center; gap:.35rem; flex-wrap:wrap; }
+        .page-btn { min-width:34px; height:34px; padding:0 .55rem; border:1.5px solid var(--gray-200); border-radius:8px; background:white; color:var(--gray-700); font-size:.8rem; font-weight:600; cursor:pointer; font-family:inherit; transition:all .18s; display:inline-flex; align-items:center; justify-content:center; }
+        .page-btn:hover:not(:disabled) { border-color:var(--purple-a); color:var(--purple-a); background:#f5f0ff; }
+        .page-btn:disabled { opacity:.38; cursor:not-allowed; }
+        .page-btn.active { background:linear-gradient(135deg,var(--purple-a),var(--purple-b)); color:white; border-color:transparent; box-shadow:0 2px 8px rgba(102,126,234,0.35); }
+        .page-ellipsis { font-size:.85rem; color:var(--gray-400); padding:0 .2rem; }
+        .per-page-wrap { display:flex; align-items:center; gap:.45rem; font-size:.78rem; color:var(--gray-500); }
+        .per-page-wrap select { padding:.28rem .55rem; border:1.5px solid var(--gray-200); border-radius:7px; font-size:.78rem; background:white; cursor:pointer; font-family:inherit; outline:none; transition:border-color .2s; }
+        .per-page-wrap select:focus { border-color:var(--purple-a); }
+        .scroll-hint { display:none; align-items:center; gap:.5rem; padding:.45rem .9rem; background:linear-gradient(90deg,#f0f4ff,#faf5ff); border-bottom:1px solid #ddd6fe; font-size:.7rem; color:#6d28d9; font-weight:600; }
+        .scroll-hint-track { flex:1; height:6px; background:#e0e7ff; border-radius:99px; overflow:hidden; position:relative; }
+        .scroll-hint-thumb { position:absolute; top:0; left:0; height:100%; background:linear-gradient(90deg,var(--purple-a),var(--purple-b)); border-radius:99px; width:30%; transition:left .05s linear; box-shadow:0 1px 4px rgba(102,126,234,0.4); }
+
+        @media (max-width:768px) {
+            .hamburger-btn { display:flex; }
+            .header-nav    { display:none !important; }
+            .header-user   { display:none !important; }
+            .logout-btn    { display:none !important; }
+            .app-subtitle  { display:none; }
+            .drawer-overlay { display:block; }
+            .mobile-drawer  { display:flex; }
+            .main-container { padding:0 .75rem; margin:1rem auto; }
+            .stats-grid     { grid-template-columns:repeat(2,1fr); gap:.75rem; }
+            .stats-grid-age { grid-template-columns:repeat(2,1fr); gap:.75rem; }
+            .stat-card      { padding:1rem 1rem 2.2rem; }
+            .stat-icon      { font-size:1.6rem; margin-bottom:.5rem; }
+            .stat-title     { font-size:.75rem; }
+            .stat-value     { font-size:1.4rem; }
+            .stat-change    { font-size:.72rem; }
+            .stat-card.age-days,.stat-card.age-week1,.stat-card.age-week2,.stat-card.age-week3plus,.stat-card.age-week4 { padding:.75rem .75rem 2rem; }
+            .crab-data-header { flex-direction:row; align-items:center; }
+            .section-title  { font-size:1.05rem; }
+            .add-crab-btn   { padding:.5rem .9rem; font-size:.82rem; }
+            .crab-grid .crab-card { flex:0 0 145px; min-width:145px; }
+            .crab-id        { font-size:.88rem; }
+            .content-grid   { grid-template-columns:1fr; gap:1rem; }
+            .modal-content  { width:96%; margin:2% auto; padding:1.25rem; }
+            .detail-modal-content { width:96%; margin:2% auto; max-height:92vh; }
+            .allboxes-modal-content { width:96%; margin:2% auto; max-height:92vh; }
+            .detail-modal-header { padding:1rem 1.25rem; }
+            .detail-modal-header .modal-title { font-size:1.05rem; }
+            .allboxes-body  { padding:1rem; }
+            .detail-modal-body { padding:.75rem 1rem 1.25rem; }
+            .crab-detail-grid { grid-template-columns:repeat(2,1fr); }
+            .crab-detail-field-value { font-size:.78rem; }
+            .form-row       { grid-template-columns:1fr; gap:0; }
+            .form-section   { padding:1rem; }
+            .form-section h3 { font-size:.95rem; }
+            .form-actions   { justify-content:stretch; }
+            .form-actions .btn { flex:1; text-align:center; }
+            .rack-group-cards { grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:.75rem; }
+            .observation-species { font-size:.82rem; }
+            .modal-title    { font-size:1.1rem; }
+            .hist-main      { padding:0 .5rem; margin:.75rem auto; }
+            .controls       { flex-direction:column; gap:.6rem; padding:.85rem; }
+            .search-wrap    { min-width:0; }
+            .filters        { width:100%; }
+            .filters select { flex:1; min-width:0; }
+            .btn-export     { width:100%; text-align:center; justify-content:center; }
+            .scroll-hint    { display:flex; }
+            .admin-table    { min-width:960px; }
+            .admin-table thead th { font-size:.6rem; padding:.5rem .45rem; letter-spacing:0; white-space:nowrap; }
+            .admin-table td { padding:.48rem .45rem; font-size:.71rem; }
+            .admin-table td.bold { font-size:.76rem; }
+            .action-badge   { font-size:.59rem; padding:.1rem .4rem; }
+            .status-pill    { font-size:.6rem; padding:.1rem .4rem; }
+            .wdiff          { font-size:.62rem; }
+            .pagination-wrap { padding:.7rem .75rem; flex-direction:column; align-items:flex-start; gap:.5rem; }
+            .page-btn       { min-width:30px; height:30px; font-size:.74rem; }
+            .page-info      { font-size:.73rem; }
+            .per-page-wrap  { font-size:.72rem; }
+        }
+        @media (max-width:420px) {
+            .stats-grid     { grid-template-columns:1fr 1fr; }
+            .stats-grid-age { grid-template-columns:1fr 1fr; }
+            .stat-value     { font-size:1.25rem; }
+            .crab-grid .crab-card { flex:0 0 135px; min-width:135px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN VIEW -->
+<div id="loginView" class="page-view">
+    <div class="bg-grad"></div>
+    <div class="bubbles">
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+    </div>
+    <div class="load-overlay" id="loadOverlay">
+        <div class="load-ring"></div>
+        <div class="load-text" id="loadText">Signing in…</div>
+        <div class="load-dest" id="loadDest"></div>
+    </div>
+    <div class="login-page">
+        <div class="login-card">
+            <div class="brand">
+                <span class="crab-icon">🦀</span>
+                <div class="brand-title">Crab Monitoring System</div>
+                <div class="brand-sub">Ingore-Baldoza Fisherfolks Association</div>
+            </div>
+            <div class="err-msg" id="errMsg"></div>
+            <div class="field">
+                <label class="field-label">Username</label>
+                <div class="field-wrap">
+                    <input class="field-input" id="loginUsername" type="text" placeholder="Enter your username" autocomplete="username" spellcheck="false" onkeydown="if(event.key==='Enter')doSignIn()">
+                </div>
+            </div>
+            <div class="field">
+                <label class="field-label">Password</label>
+                <div class="field-wrap">
+                    <input class="field-input" id="loginPassword" type="password" placeholder="Enter your password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()">
+                    <button class="eye-btn" type="button" onclick="toggleEye()" tabindex="-1" id="eyeBtn">👁</button>
+                </div>
+            </div>
+            <button class="signin-btn" id="signinBtn" onclick="doSignIn()">Log In</button>
+            <div class="card-foot">
+                <p>🔒 Secured connection · Session expires in 24h</p>
+                <p>Need an account? Contact your administrator.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="appShell" style="display:none;">
+    <header class="app-header">
+        <div class="app-header-content">
+            <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">
+                <span></span><span></span><span></span>
+            </button>
+            <div class="app-logo">🦀</div>
+            <div>
+                <div class="app-title">Crab Monitoring System</div>
+                <div class="app-subtitle">Ingore-Baldoza Fisherfolks Association</div>
+            </div>
+            <div class="header-right">
+                <div class="conn-pill" id="connPill">
+                    <div class="status-dot connecting" id="statusDot"></div>
+                    <span id="statusLabel">Connecting...</span>
+                </div>
+                <nav class="header-nav">
+                    <button class="nav-btn" id="navDashboard" onclick="showView('dashboard')">🏠 Dashboard</button>
+                    <button class="nav-btn" id="navHistory"   onclick="showView('history')">📋 History</button>
+                </nav>
+                <div class="header-user">
+                    <div class="header-user-name" id="headerUserName">—</div>
+                    <div class="header-user-role" id="headerUserRole">—</div>
+                </div>
+                <button class="logout-btn" id="logoutBtn">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+    <div class="mobile-drawer" id="mobileDrawer">
+        <div class="drawer-hd">
+            <div class="drawer-hd-label">Navigation</div>
+            <div class="drawer-hd-name" id="drawerUserName">—</div>
+            <div class="drawer-hd-role" id="drawerUserRole">—</div>
+        </div>
+        <nav class="drawer-nav-list">
+            <button class="drawer-link" id="drawerDashboard" onclick="showView('dashboard');closeDrawer();">
+                <span class="drawer-link-icon">🏠</span>Dashboard
+            </button>
+            <button class="drawer-link" id="drawerHistory" onclick="showView('history');closeDrawer();">
+                <span class="drawer-link-icon">📋</span>History
+            </button>
+        </nav>
+        <div style="flex:1;"></div>
+        <div style="height:1px;background:#eee;margin:.5rem 1.25rem;"></div>
+        <button class="drawer-link drawer-logout" id="drawerLogoutBtn">
+            <span class="drawer-link-icon">🚪</span>Logout
+        </button>
+    </div>
+
+    <!-- DASHBOARD VIEW -->
+    <div id="dashboardView" class="page-view">
+        <main class="main-container">
+            <div class="stats-section-label">📊 Overview</div>
+            <div class="stats-grid" style="margin-bottom:1.5rem;">
+                <div class="stat-card" onclick="showStatModal('total')"><div class="stat-icon">🦀</div><div class="stat-title">Total Crabs Monitored</div><div class="stat-value" id="totalCrabs">—</div><div class="stat-change positive" id="totalCrabsChange">Loading...</div></div>
+                <div class="stat-card card-healthy" onclick="showStatModal('healthy')"><div class="stat-icon">💚</div><div class="stat-title">Healthy Crabs</div><div class="stat-value" id="healthyCrabs">—</div><div class="stat-change positive" id="healthyChange">Loading...</div></div>
+                <div class="stat-card card-dead" onclick="showStatModal('mortality')"><div class="stat-icon">💀</div><div class="stat-title">Mortality</div><div class="stat-value" id="mortality">—</div><div class="stat-change" id="healthScoreChange">Loading...</div></div>
+                <div class="stat-card card-sell" onclick="showStatModal('sell')"><div class="stat-icon">💰</div><div class="stat-title">Ready to Sell</div><div class="stat-value" id="alertCount">—</div><div class="stat-change" id="alertChange">Loading...</div></div>
+                <div class="stat-card card-sold" onclick="showStatModal('sold')"><div class="stat-icon">🏷️</div><div class="stat-title">Sold</div><div class="stat-value" id="soldCount">—</div><div class="stat-change neutral" id="soldChange">Loading...</div></div>
+            </div>
+            <div class="stats-section-label">📅 Age Groups</div>
+            <div class="stats-grid-age">
+                <div class="stat-card age-days" onclick="showStatModal('age-days')"><div class="stat-icon">🦀</div><div class="stat-title">Day 1–6 (New Arrivals)</div><div class="stat-value" id="ageDaysCount">—</div><div class="stat-change age-info" id="ageDaysChange">Loading...</div></div>
+                <div class="stat-card age-week1" onclick="showStatModal('age-week1')"><div class="stat-icon">📅</div><div class="stat-title">Week 1 (Days 7–13)</div><div class="stat-value" id="ageWeek1Count">—</div><div class="stat-change age-info" id="ageWeek1Change">Loading...</div></div>
+                <div class="stat-card age-week2" onclick="showStatModal('age-week2')"><div class="stat-icon">📆</div><div class="stat-title">Week 2 (Days 14–20)</div><div class="stat-value" id="ageWeek2Count">—</div><div class="stat-change age-info" id="ageWeek2Change">Loading...</div></div>
+                <div class="stat-card age-week3plus" onclick="showStatModal('age-week3plus')"><div class="stat-icon">🗓️</div><div class="stat-title">Week 3 (Days 21–27)</div><div class="stat-value" id="ageWeek3plusCount">—</div><div class="stat-change age-info" id="ageWeek3plusChange">Loading...</div></div>
+                <div class="stat-card age-week4" onclick="showStatModal('age-week4')"><div class="stat-icon">🗓️</div><div class="stat-title">Week 4+ (Day 28+)</div><div class="stat-value" id="ageWeek4Count">—</div><div class="stat-change age-info" id="ageWeek4Change">Loading...</div></div>
+            </div>
+            <div class="crab-data-section">
+                <div class="crab-data-header">
+                    <h2 class="section-title">🦀 Crab Data</h2>
+                    <button class="add-crab-btn" onclick="openAddCrabModal()"><span style="color:#ff69b4;font-size:1.8rem;font-weight:900;line-height:1;">+</span> Add Crab</button>
+                </div>
+                <div class="crab-grid" id="crabGrid"></div>
+                <div class="view-more-wrap" id="viewMoreWrap" style="display:none;">
+                    <button class="view-more-btn" onclick="openAllBoxesModal()">📦 View All Boxes <span id="viewMoreCount" style="background:rgba(102,126,234,0.12);padding:.1rem .5rem;border-radius:10px;font-size:.8rem;"></span></button>
+                </div>
+            </div>
+            <div class="content-grid">
+                <div class="card">
+                    <div class="card-header"><span>Recent Observations</span><span style="font-size:.8rem;opacity:.85;" id="lastUpdated">Live</span></div>
+                    <div class="card-content"><div class="recent-observations" id="observationsList"><div class="empty-state">Loading observations...</div></div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><span>📍 Top Origins</span><span style="font-size:.8rem;opacity:.85;" id="originsTotal">Active crabs</span></div>
+                    <div class="card-content" id="topOriginsList" style="max-height:400px;overflow-y:auto;"><div class="empty-state">Loading...</div></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- HISTORY VIEW -->
+    <div id="historyView" class="page-view">
+        <div class="hist-main">
+            <div class="controls">
+                <div class="search-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="histSearch" placeholder="Search box no., type, location, person..." oninput="onFilterChange()">
+                </div>
+                <div class="filters">
+                    <select id="histAction" onchange="onFilterChange()"><option value="">All Actions</option><option value="added">✅ Added</option><option value="updated">✏️ Updated</option><option value="sold">🏷️ Sold</option><option value="dead">💀 Dead</option><option value="removed">🗑️ Removed</option></select>
+                    <select id="histType" onchange="onFilterChange()"><option value="">All Types</option><option value="SS">SS – King Crab</option><option value="SO">SO – Orange/Red</option><option value="ST">ST – Purple</option></select>
+                    <select id="histGroup" onchange="onFilterChange()"><option value="time">Group by Time</option><option value="box">Group by Box No.</option><option value="none">No Grouping</option></select>
+                    <select id="histSort" onchange="onFilterChange()"><option value="newest">Newest First</option><option value="oldest">Oldest First</option></select>
+                    <button class="btn-export" onclick="exportCSV()">⬇️ Export CSV</button>
+                </div>
+            </div>
+            <div class="hist-card">
+                <div class="hist-card-hd"><span>📋 Activity Log — Every Action</span><span class="count-badge" id="histCountBadge">Loading…</span></div>
+                <div class="scroll-hint" id="scrollHint">
+                    <span>👈 Scroll</span>
+                    <div class="scroll-hint-track"><div class="scroll-hint-thumb" id="scrollThumb"></div></div>
+                    <span>👉</span>
+                </div>
+                <div class="table-wrap" id="tableWrap">
+                    <table class="admin-table">
+                        <thead><tr>
+                            <th>#</th><th>Box No.</th><th>Action</th><th>Type</th>
+                            <th>Class</th><th>Gender</th><th>Location</th><th>Status</th>
+                            <th>Date In</th><th>Age</th><th>Orig. Wt.</th><th>Curr. Wt.</th>
+                            <th>Changes</th><th>Added By</th><th>Action By</th><th>Action At</th>
+                        </tr></thead>
+                        <tbody id="histTableBody"><tr><td colspan="16"><div class="empty-state"><div class="empty-icon" style="font-size:2.5rem;margin-bottom:.75rem;">⏳</div><div class="empty-text" style="font-size:.9rem;font-weight:500;">Loading…</div></div></td></tr></tbody>
+                    </table>
+                </div>
+                <div class="pagination-wrap" id="paginationWrap" style="display:none;">
+                    <div class="page-info" id="pageInfo"></div>
+                    <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+                        <div class="per-page-wrap">Rows: <select id="perPageSelect" onchange="onPerPageChange()"><option value="15" selected>15</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></div>
+                        <div class="page-controls" id="pageControls"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODALS -->
+<div id="allBoxesModal" class="modal">
+    <div class="allboxes-modal-content">
+        <div class="allboxes-header">
+            <div class="modal-title">📦 All Boxes &nbsp;<span id="allBoxesCount" style="font-size:.82rem;opacity:.85;font-weight:400;"></span></div>
+            <span class="close-x" onclick="closeAllBoxesModal()">&times;</span>
+        </div>
+        <div class="allboxes-search"><input type="text" id="allBoxesSearch" placeholder="🔍 Search by box no., type, status, location..." oninput="filterAllBoxes()"></div>
+        <div class="allboxes-body"><div class="allboxes-grid" id="allBoxesGrid"></div></div>
+    </div>
+</div>
+
+<div id="statDetailModal" class="modal">
+    <div class="detail-modal-content">
+        <div class="detail-modal-header total" id="statDetailHeader">
+            <div><div class="modal-title" id="statDetailTitle">All Crabs</div><div class="modal-subtitle" id="statDetailSubtitle">Loading...</div></div>
+            <span class="close-x" onclick="closeStatDetailModal()">&times;</span>
+        </div>
+        <div class="detail-modal-search"><input type="text" id="statDetailSearch" placeholder="🔍 Search by Box No., Type, Location, Gender..." oninput="filterStatDetail()"></div>
+        <div class="detail-modal-body" id="statDetailBody"><div class="empty-state">Loading...</div></div>
+    </div>
+</div>
+
+<div id="crabModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalTitle">Crab Data Entry</h2>
+            <span class="close-x" onclick="closeCrabModal()">&times;</span>
+        </div>
+        <form id="crabDataForm" class="data-form">
+            <div class="form-section">
+                <h3>📋 Basic Information</h3>
+                <div class="form-row">
+                    <div class="form-group"><label for="dateIn">Date In</label><input type="date" id="dateIn" required oninput="updateAgePreview()" max=""><div class="age-preview" id="agePreview"></div></div>
+                    <div class="form-group"><label for="boxNo">Box No.</label><div class="boxno-wrap"><input type="text" id="boxNo" placeholder="Type or pick an empty box…" required autocomplete="off" oninput="onBoxNoInput()" onfocus="onBoxNoInput()" onblur="delayCloseDropdown()"><div class="boxno-dropdown" id="boxNoDropdown"></div></div></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label for="crabOrigin">Crab Origin</label><input type="text" id="crabOrigin" placeholder="e.g. Farm" required></div>
+                    <div class="form-group"><label for="gender">Gender</label><select id="gender" required><option value="">Select Gender</option><option value="male">Male</option><option value="female">Female</option><option value="unknown">Unknown</option></select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label for="crabType">Type</label><select id="crabType" required><option value="">Select Type</option><option value="SS">(SS) King Crab (Bulik)</option><option value="SO">(SO) Orange/Red Mud Crab (Pulahan)</option><option value="ST">(ST) Purple Mud Crab (Native)</option></select></div>
+                    <div class="form-group"><label for="crabClass">Class</label><select id="crabClass" required><option value="">Select Class</option><option value="A">Class A</option><option value="B">Class B</option><option value="C">Class C</option></select></div>
+                </div>
+            </div>
+            <div class="form-section">
+                <h3>⚖️ Weight Information</h3>
+                <div class="form-row">
+                    <div class="form-group"><label for="originWeight">Origin Weight (g)</label><input type="number" id="originWeight" step="0.1" min="0" required></div>
+                    <div class="form-group"><label for="currentWeight">Current Weight (g)</label><input type="number" id="currentWeight" step="0.1" min="0" required></div>
+                </div>
+            </div>
+            <div class="form-section">
+                <h3>🏥 Health Status</h3>
+                <div class="form-row">
+                    <div class="form-group"><label for="weeklyStatus">Weekly Status</label><select id="weeklyStatus" required><option value="">Select Status</option><option value="healthy">Healthy</option><option value="Dead">Dead</option><option value="Ready to Sell">Ready to Sell</option><option value="Sold">Sold</option></select></div>
+                    <div class="form-group"><label for="location">Location / Site</label><input type="text" id="location" placeholder="e.g. Site A-3" required></div>
+                </div>
+            </div>
+            <div class="form-section">
+                <h3>📝 Additional Notes</h3>
+                <div class="form-group"><label for="notes">Observation Notes</label><textarea id="notes" placeholder="Enter any additional observations, behaviors, or concerns..."></textarea></div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeCrabModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="saveBtn">💾 Save Data</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE + APP LOGIC -->
+<script type="module">
+import { initializeApp }  from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAnalytics }   from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
+import { getDatabase, ref, set, push, onValue, get, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+const firebaseConfig = {
+    apiKey:"AIzaSyCL2YkjBwcQR642R9l0AXuX5ayczH2q1EM",
+    authDomain:"crabmonitoringsystem-ab2ea.firebaseapp.com",
+    databaseURL:"https://crabmonitoringsystem-ab2ea-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:"crabmonitoringsystem-ab2ea",
+    storageBucket:"crabmonitoringsystem-ab2ea.firebasestorage.app",
+    messagingSenderId:"910140962027",
+    appId:"1:910140962027:web:ec86956350b4ec28567aae",
+    measurementId:"G-EQ00V82X14"
+};
+const app = initializeApp(firebaseConfig);
+getAnalytics(app);
+const db = getDatabase(app);
+
+onValue(ref(db,'.info/connected'), snap => {
+    const dot=document.getElementById('statusDot'), lbl=document.getElementById('statusLabel');
+    if(snap.val()){ dot.className='status-dot connected'; lbl.textContent='Connected'; }
+    else           { dot.className='status-dot disconnected'; lbl.textContent='Disconnected'; }
+});
+
+window._fb = { db, ref, set, push, get, serverTimestamp };
+
+onValue(ref(db,'crabs'), snapshot => {
+    const data = snapshot.val();
+    window._allCrabs = data ? Object.entries(data).map(([id,v])=>({id,...v})) : [];
+    renderCrabGrid(window._allCrabs);
+    updateStats(window._allCrabs, window._deletedCrabs||[]);
+    renderObservations(window._allCrabs);
+    renderTopOrigins(window._allCrabs);
+    document.getElementById('lastUpdated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+});
+
+onValue(ref(db,'deletedCrabs'), snapshot => {
+    const data = snapshot.val();
+    window._deletedCrabs = data ? Object.entries(data).map(([id,v])=>({id,...v})) : [];
+    updateStats(window._allCrabs||[], window._deletedCrabs);
+});
+
+// ── activityLog listener: this is the single source of truth for History ──
+onValue(ref(db,'activityLog'), snapshot => {
+    const data = snapshot.val();
+    window._allEvents = data
+        ? Object.entries(data).map(([id,v])=>({id,...v}))
+        : [];
+    if(document.getElementById('historyView').classList.contains('active'))
+        onFilterChange();
+});
+
+/* ── Login ── */
+window.doSignIn = async () => {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    hideErr();
+    if (!username || !password){ showErr('Please enter your username and password.'); shakeFields(); return; }
+    const btn = document.getElementById('signinBtn');
+    btn.disabled=true; btn.innerHTML='<span class="btn-spin"></span>Signing in…';
+    try {
+        if(username.toLowerCase()==='admin' && password==='Admin123'){
+            const session={username:'admin',name:'Administrator',role:'admin',loginTime:new Date().toISOString(),lastActive:Date.now()};
+            sessionStorage.setItem('crabMonitoringSession',JSON.stringify(session));
+            setLoading(true,'Welcome, Admin!','→ Redirecting…');
+            setTimeout(()=>{ setLoading(false); bootApp(session); },900); return;
+        }
+        const snap = await get(ref(db,'users'));
+        if(!snap.exists()){ showErr('No accounts found. Contact your administrator.'); resetSigninBtn(); return; }
+        const users=snap.val(); let mKey=null, mUser=null;
+        for(const [key,u] of Object.entries(users)){
+            if((u.username||'').toLowerCase()===username.toLowerCase() && u.password===password){ mKey=key; mUser=u; break; }
+        }
+        if(!mUser){ showErr('Incorrect username or password.'); shakeFields(); resetSigninBtn(); return; }
+        await set(ref(db,`users/${mKey}`),{...mUser,lastLogin:Date.now(),lastActive:Date.now()});
+        const fullName=[mUser.firstName||'',mUser.lastName||''].join(' ').trim()||mUser.name||mUser.username;
+        const role=mUser.role||'monitor1';
+        const session={username:mUser.username,name:fullName,role,loginTime:new Date().toISOString(),lastActive:Date.now(),_fbKey:mKey};
+        sessionStorage.setItem('crabMonitoringSession',JSON.stringify(session));
+        setLoading(true,`Welcome, ${fullName.split(' ')[0]}!`,'→ Loading Dashboard');
+        setTimeout(()=>{ setLoading(false); bootApp(session); },900);
+    } catch(err){ showErr(`Connection error: ${err.message}`); resetSigninBtn(); }
+};
+function resetSigninBtn(){ const b=document.getElementById('signinBtn'); b.disabled=false; b.innerHTML='Log In'; }
+</script>
+
+<script>
+/* ══════════════════════════════════════════════
+   ROUTING & BOOTSTRAP
+══════════════════════════════════════════════ */
+window._allCrabs   = [];
+window._deletedCrabs = [];
+window._allEvents  = [];   // populated by activityLog listener
+window._currentView = 'dashboard';
+
+function bootApp(session) {
+    document.getElementById('loginView').classList.remove('active');
+    document.getElementById('appShell').style.display = 'block';
+    const name = session.name || session.username || '—';
+    const role = (session.role||'').charAt(0).toUpperCase()+(session.role||'').slice(1);
+    ['headerUserName','drawerUserName'].forEach(id=>document.getElementById(id).textContent=name);
+    ['headerUserRole','drawerUserRole'].forEach(id=>document.getElementById(id).textContent=role);
+    showView('dashboard');
+}
+
+function showView(view) {
+    window._currentView = view;
+    document.getElementById('dashboardView').classList.toggle('active', view==='dashboard');
+    document.getElementById('historyView').classList.toggle('active', view==='history');
+    document.getElementById('navDashboard').classList.toggle('active', view==='dashboard');
+    document.getElementById('navHistory').classList.toggle('active', view==='history');
+    document.getElementById('drawerDashboard').classList.toggle('active', view==='dashboard');
+    document.getElementById('drawerHistory').classList.toggle('active', view==='history');
+    document.title = view==='history' ? 'Crab Monitoring – History' : 'Crab Monitoring – Dashboard';
+    if(view==='history') onFilterChange();
+}
+window.showView = showView;
+
+(function(){
+    const s = sessionStorage.getItem('crabMonitoringSession') || localStorage.getItem('crabMonitoringSession');
+    if(s){
+        try{
+            const d=JSON.parse(s);
+            const hrs=(Date.now()-new Date(d.loginTime))/3600000;
+            if(hrs<24){
+                if(!sessionStorage.getItem('crabMonitoringSession')) sessionStorage.setItem('crabMonitoringSession',s);
+                bootApp(d); return;
+            } else {
+                sessionStorage.removeItem('crabMonitoringSession');
+                localStorage.removeItem('crabMonitoringSession');
+            }
+        }catch{}
+    }
+    document.getElementById('loginView').classList.add('active');
+})();
+
+function doLogout(){
+    sessionStorage.removeItem('crabMonitoringSession');
+    localStorage.removeItem('crabMonitoringSession');
+    document.getElementById('appShell').style.display='none';
+    document.getElementById('loginView').classList.add('active');
+    document.getElementById('loginUsername').value='';
+    document.getElementById('loginPassword').value='';
+    window._allCrabs=[]; window._deletedCrabs=[]; window._allEvents=[];
+}
+document.getElementById('logoutBtn').addEventListener('click', doLogout);
+document.getElementById('drawerLogoutBtn').addEventListener('click', ()=>{ closeDrawer(); doLogout(); });
+
+const hamburgerBtn  = document.getElementById('hamburgerBtn');
+const mobileDrawer  = document.getElementById('mobileDrawer');
+const drawerOverlay = document.getElementById('drawerOverlay');
+function openDrawer(){  mobileDrawer.classList.add('open'); drawerOverlay.classList.add('open'); hamburgerBtn.classList.add('open'); document.body.style.overflow='hidden'; }
+function closeDrawer(){ mobileDrawer.classList.remove('open'); drawerOverlay.classList.remove('open'); hamburgerBtn.classList.remove('open'); document.body.style.overflow=''; }
+window.closeDrawer = closeDrawer;
+hamburgerBtn.addEventListener('click',()=>mobileDrawer.classList.contains('open')?closeDrawer():openDrawer());
+
+/* ══════════════════════════════════════════════
+   SHARED HELPERS
+══════════════════════════════════════════════ */
+function capitalize(s){ return s?s.charAt(0).toUpperCase()+s.slice(1):''; }
+window.capitalize = capitalize;
+function getTodayString(){ const t=new Date(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; }
+function computeAgeDays(dateIn){ if(!dateIn)return null; const d=new Date(dateIn+'T00:00:00'); if(isNaN(d))return null; const today=new Date(); today.setHours(0,0,0,0); const diff=Math.floor((today-d)/86400000); return diff<0?0:diff; }
+window.computeAgeDays=computeAgeDays;
+function ageLabel(days){ if(days===null)return{text:'—',cls:'days'}; if(days<=6)return{text:`Day ${days===0?1:days+1}`,cls:'days'}; const week=Math.floor(days/7); const cls=week===1?'week1':week===2?'week2':week===3?'week3':'week4plus'; return{text:`Week ${week}`,cls}; }
+window.ageLabel=ageLabel;
+function ageBucket(days){ if(days===null||days===undefined)return null; if(days<=6)return 'age-days'; const w=Math.floor(days/7); if(w===1)return 'age-week1'; if(w===2)return 'age-week2'; if(w===3)return 'age-week3plus'; return 'age-week4'; }
+window.ageBucket=ageBucket;
+function fmtSoldDate(ts){ if(!ts)return '—'; const d=new Date(ts); return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}); }
+function fmtTime(ts){ if(!ts)return 'Unknown'; const d=Date.now()-ts, m=Math.floor(d/60000); if(m<1)return 'Just now'; if(m<60)return `${m}m ago`; const h=Math.floor(m/60); if(h<24)return `${h}h ago`; return new Date(ts).toLocaleDateString(); }
+function cssStatus(s){ return (s||'unknown').toLowerCase().replace(/\s+/g,''); }
+function showToast(msg,type=''){ const t=document.getElementById('toast'); t.textContent=msg; t.className=`toast ${type} show`; setTimeout(()=>t.className='toast',3500); }
+window.showToast=showToast;
+const ALL_BOXES=[];
+['A','B'].forEach(row=>{ for(let r=1;r<=5;r++) for(let s=1;s<=10;s++) ALL_BOXES.push(`${row}${r}-${String(s).padStart(2,'0')}`); });
+window.ALL_BOXES=ALL_BOXES;
+function boxSort(a,b){ const parse=s=>{ const m=(s||'').match(/^([A-Za-z]+)(\d+)-(\d+)$/); if(!m)return[s,0,0]; return[m[1].toUpperCase(),parseInt(m[2],10),parseInt(m[3],10)]; }; const[ar,an,as_]=parse(a),[br,bn,bs_]=parse(b); if(ar!==br)return ar.localeCompare(br); if(an!==bn)return an-bn; return as_-bs_; }
+window.boxSort=boxSort;
+function isBoxOccupied(c){ return (c.weeklyStatus||'').toLowerCase()!=='sold'; }
+function rackLetter(boxNo){ const m=(boxNo||'').match(/^([A-Za-z]+)/); return m?m[1].toUpperCase():'?'; }
+
+/* ── Login helpers ── */
+function showErr(msg){ const el=document.getElementById('errMsg'); el.textContent=msg; el.className='err-msg show'; }
+function hideErr(){ document.getElementById('errMsg').className='err-msg'; }
+function shakeFields(){ ['loginUsername','loginPassword'].forEach(id=>{ const el=document.getElementById(id); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); el.addEventListener('animationend',()=>el.classList.remove('shake'),{once:true}); }); }
+function setLoading(on,text,dest){ if(text)document.getElementById('loadText').textContent=text; if(dest)document.getElementById('loadDest').textContent=dest||''; document.getElementById('loadOverlay').classList.toggle('on',on); }
+window.toggleEye=()=>{ const inp=document.getElementById('loginPassword'),btn=document.getElementById('eyeBtn'); inp.type=inp.type==='password'?'text':'password'; btn.textContent=inp.type==='text'?'🙈':'👁'; };
+
+/* ══════════════════════════════════════════════
+   ACTIVITY LOG HELPERS
+   - buildChangelog: compares old vs new, returns {field:{from,to}}
+   - writeLog: pushes one permanent entry to Firebase activityLog
+══════════════════════════════════════════════ */
+const TRACKED_FIELDS = ['dateIn','crabOrigin','gender','crabType','crabClass',
+                         'originWeight','currentWeight','weeklyStatus','location','notes'];
+
+function buildChangelog(oldData, newData) {
+    const changes = {};
+    TRACKED_FIELDS.forEach(f => {
+        const ov = oldData[f] != null ? String(oldData[f]) : '';
+        const nv = newData[f] != null ? String(newData[f]) : '';
+        if(ov !== nv) changes[f] = { from: oldData[f] ?? null, to: newData[f] ?? null };
+    });
+    return changes;
+}
+
+async function writeLog(action, boxNo, snapshot, changes, eventBy, eventTs) {
+    const { db, ref, push } = window._fb;
+    try {
+        await push(ref(db, 'activityLog'), {
+            action,           // 'added' | 'updated' | 'sold' | 'dead' | 'removed'
+            boxNo,
+            eventBy,
+            eventTs: eventTs || Date.now(),
+            changes: changes || {},
+            // snapshot of all crab fields at time of action
+            dateIn:        snapshot.dateIn        || null,
+            crabOrigin:    snapshot.crabOrigin    || null,
+            gender:        snapshot.gender        || null,
+            crabType:      snapshot.crabType      || null,
+            crabClass:     snapshot.crabClass     || null,
+            originWeight:  snapshot.originWeight  != null ? snapshot.originWeight  : null,
+            currentWeight: snapshot.currentWeight != null ? snapshot.currentWeight : null,
+            weeklyStatus:  snapshot.weeklyStatus  || null,
+            location:      snapshot.location      || null,
+            notes:         snapshot.notes         || null,
+            addedBy:       snapshot.addedBy       || snapshot.recordedBy || null,
+            createdAt:     snapshot.createdAt     || null,
+        });
+    } catch(err) { console.warn('activityLog write failed:', err); }
+}
+window.writeLog = writeLog;
+
+/* ══════════════════════════════════════════════
+   DASHBOARD LOGIC
+══════════════════════════════════════════════ */
+const ORIGIN_COLORS=['linear-gradient(135deg,#667eea,#764ba2)','linear-gradient(135deg,#4facfe,#00f2fe)','linear-gradient(135deg,#43e97b,#38f9d7)','linear-gradient(135deg,#fa709a,#fee140)','linear-gradient(135deg,#f093fb,#f5576c)','linear-gradient(135deg,#a78bfa,#7c3aed)','linear-gradient(135deg,#e67e22,#f39c12)'];
+
+function renderTopOrigins(crabs){
+    const container=document.getElementById('topOriginsList');
+    const active=crabs.filter(c=>isBoxOccupied(c)); const total=active.length;
+    const map={}; active.forEach(c=>{ const o=(c.crabOrigin||'').trim()||'Unknown'; if(!map[o])map[o]={count:0,types:new Set()}; map[o].count++; if(c.crabType)map[o].types.add(c.crabType); });
+    const sorted=Object.entries(map).sort((a,b)=>b[1].count-a[1].count).slice(0,7);
+    document.getElementById('originsTotal').textContent=`${total} active crab${total!==1?'s':''}`;
+    if(!sorted.length){ container.innerHTML='<div class="empty-state">No origin data yet.</div>'; return; }
+    const maxC=sorted[0][1].count;
+    container.innerHTML=sorted.map(([origin,data],idx)=>{
+        const pct=total>0?Math.round((data.count/total)*100):0, bw=maxC>0?Math.round((data.count/maxC)*100):0;
+        const color=ORIGIN_COLORS[idx%ORIGIN_COLORS.length];
+        const tags=[...data.types].map(t=>`<span class="origin-type-tag">${t}</span>`).join('');
+        return `<div class="origin-item"><div class="origin-top-row"><div class="origin-name">${origin}</div><div class="origin-meta"><span class="origin-count">${data.count}</span><span class="origin-pct">(${pct}%)</span></div></div><div class="origin-bar-wrap"><div class="origin-bar-fill" style="width:${bw}%;background:${color};"></div></div>${tags?`<div class="origin-types">${tags}</div>`:''}</div>`;
+    }).join('');
+}
+
+function renderCrabGrid(crabs){
+    const grid=document.getElementById('crabGrid'), moreWrap=document.getElementById('viewMoreWrap');
+    const active=crabs.filter(c=>isBoxOccupied(c));
+    if(!active.length){ grid.innerHTML='<p style="color:#999;flex:1;">No active crabs. Click <strong>➕ Add Crab</strong> to get started.</p>'; moreWrap.style.display='none'; return; }
+    const sorted=[...active].sort((a,b)=>boxSort(a.boxNo||a.id,b.boxNo||b.id));
+    grid.innerHTML=sorted.slice(0,7).map(c=>crabCardHTML(c)).join('');
+    moreWrap.style.display='flex';
+    document.getElementById('viewMoreCount').textContent=`${active.length} total`;
+}
+
+function crabCardHTML(c){
+    const days=computeAgeDays(c.dateIn), age=ageLabel(days);
+    return `<div class="crab-card"><div class="crab-card-header"><div class="crab-id">${c.boxNo||c.id}</div><div><span style="cursor:pointer;margin-right:.4rem;" onclick="window.openEditModal('${c.id}')" title="Edit">✏️</span><span style="cursor:pointer;color:#dc3545;" onclick="window.deleteCrab('${c.id}','${c.boxNo||c.id}')" title="Delete">🗑️</span></div></div><div class="crab-status status-${cssStatus(c.weeklyStatus)}">${capitalize(c.weeklyStatus||'Unknown')}</div><div style="font-size:.75rem;color:#999;margin-top:.5rem;">${c.crabType||'—'}</div><div style="font-size:.75rem;color:#999;">${c.location||'—'}</div><div class="crab-age-display ${age.cls}">⏱ ${age.text}</div></div>`;
+}
+
+function updateStats(crabs,deleted){
+    const healthy=crabs.filter(c=>(c.weeklyStatus||'').toLowerCase()==='healthy').length;
+    const rts=crabs.filter(c=>c.weeklyStatus==='Ready to Sell').length;
+    const dead=(deleted||[]).filter(c=>c.weeklyStatus==='Dead').length;
+    const sold=(deleted||[]).filter(c=>c.weeklyStatus==='Sold').length;
+    const total=crabs.filter(c=>(c.weeklyStatus||'').toLowerCase()!=='sold'&&(c.weeklyStatus||'').toLowerCase()!=='dead').length;
+    const mb=total+dead, mortality=mb>0?Math.round((dead/mb)*100):0;
+    const aDays=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-days').length;
+    const aW1=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week1').length;
+    const aW2=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week2').length;
+    const aW3=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week3plus').length;
+    const aW4=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week4').length;
+    const needAttn=crabs.filter(c=>(c.weeklyStatus||'').toLowerCase()==='dead').length;
+    document.getElementById('totalCrabs').textContent=total;
+    document.getElementById('totalCrabsChange').textContent=`${total} active crab${total!==1?'s':''}`;
+    document.getElementById('healthyCrabs').textContent=healthy;
+    document.getElementById('healthyChange').textContent=needAttn===0?'✓ All crabs are healthy':`${needAttn} need attention`;
+    document.getElementById('healthyChange').className='stat-change '+(needAttn===0?'positive':'negative');
+    document.getElementById('mortality').textContent=dead;
+    document.getElementById('healthScoreChange').className='stat-change '+(dead===0?'positive':'negative');
+    document.getElementById('healthScoreChange').textContent=dead===0?'✓ No mortality':`${mortality}% mortality rate`;
+    document.getElementById('alertCount').textContent=rts;
+    document.getElementById('alertChange').textContent=rts===0?'✅ No crabs ready for sale':`${rts} crabs ready for sale`;
+    document.getElementById('alertChange').className='stat-change '+(rts===0?'positive':'negative');
+    document.getElementById('soldCount').textContent=sold;
+    document.getElementById('soldChange').textContent=sold===0?'No crabs sold yet':`${sold} crab${sold!==1?'s':''} sold`;
+    document.getElementById('soldChange').className='stat-change neutral';
+    document.getElementById('ageDaysCount').textContent=aDays;
+    document.getElementById('ageDaysChange').textContent=aDays===0?'No new arrivals':`${aDays} crab${aDays!==1?'s':''} in Days 1–6`;
+    document.getElementById('ageWeek1Count').textContent=aW1;
+    document.getElementById('ageWeek1Change').textContent=aW1===0?'No crabs in Week 1':`${aW1} crab${aW1!==1?'s':''} in Week 1`;
+    document.getElementById('ageWeek2Count').textContent=aW2;
+    document.getElementById('ageWeek2Change').textContent=aW2===0?'No crabs in Week 2':`${aW2} crab${aW2!==1?'s':''} in Week 2`;
+    document.getElementById('ageWeek3plusCount').textContent=aW3;
+    document.getElementById('ageWeek3plusChange').textContent=aW3===0?'No crabs in Week 3':`${aW3} crab${aW3!==1?'s':''} in Week 3`;
+    document.getElementById('ageWeek4Count').textContent=aW4;
+    document.getElementById('ageWeek4Change').textContent=aW4===0?'No crabs in Week 4+':`${aW4} crab${aW4!==1?'s':''} in Week 4+`;
+}
+
+function renderObservations(crabs){
+    const list=document.getElementById('observationsList');
+    const sorted=[...crabs].sort((a,b)=>(b.timestamp||0)-(a.timestamp||0)).slice(0,10);
+    if(!sorted.length){ list.innerHTML='<div class="empty-state">No observations yet.</div>'; return; }
+    list.innerHTML=sorted.map(c=>{ const days=computeAgeDays(c.dateIn), age=ageLabel(days);
+        return `<div class="observation-item"><div class="observation-info"><div class="observation-species">${c.crabType||'Unknown'} — <strong>${c.boxNo||c.id}</strong><span class="age-badge ${age.cls}">⏱ ${age.text}</span></div><div class="observation-details">${c.location||'Unknown Site'} &bull; ${fmtTime(c.timestamp)}</div></div><div class="observation-status status-${cssStatus(c.weeklyStatus)}">${capitalize(c.weeklyStatus||'Unknown')}</div></div>`;
+    }).join('');
+}
+
+/* All Boxes Modal */
+window._allBoxesData=[];
+window.openAllBoxesModal=()=>{
+    const active=(window._allCrabs||[]).filter(c=>isBoxOccupied(c));
+    window._allBoxesData=[...active].sort((a,b)=>boxSort(a.boxNo||a.id,b.boxNo||b.id));
+    document.getElementById('allBoxesSearch').value='';
+    document.getElementById('allBoxesCount').textContent=`${active.length} box${active.length!==1?'es':''}`;
+    renderAllBoxesGrid(window._allBoxesData);
+    document.getElementById('allBoxesModal').style.display='block';
+};
+window.closeAllBoxesModal=()=>document.getElementById('allBoxesModal').style.display='none';
+window.filterAllBoxes=()=>{
+    const q=document.getElementById('allBoxesSearch').value.toLowerCase();
+    renderAllBoxesGrid(window._allBoxesData.filter(c=>(c.boxNo||c.id||'').toLowerCase().includes(q)||(c.crabType||'').toLowerCase().includes(q)||(c.weeklyStatus||'').toLowerCase().includes(q)||(c.location||'').toLowerCase().includes(q)));
+};
+function renderAllBoxesGrid(crabs){
+    const grid=document.getElementById('allBoxesGrid');
+    if(!crabs.length){ grid.innerHTML='<div style="text-align:center;color:#aaa;padding:2.5rem;font-size:.95rem;">No boxes found</div>'; return; }
+    const groups={}, order=[];
+    crabs.forEach(c=>{ const l=rackLetter(c.boxNo||c.id); if(!groups[l]){groups[l]=[];order.push(l);} groups[l].push(c); });
+    grid.innerHTML=order.map(letter=>{
+        const gc=groups[letter];
+        const cards=gc.map(c=>{ const days=computeAgeDays(c.dateIn), age=ageLabel(days);
+            return `<div class="crab-card"><div class="crab-card-header"><div class="crab-id">${c.boxNo||c.id}</div><div><span style="cursor:pointer;margin-right:.4rem;" onclick="window.openEditModal('${c.id}');closeAllBoxesModal();" title="Edit">✏️</span><span style="cursor:pointer;color:#dc3545;" onclick="window.deleteCrab('${c.id}','${c.boxNo||c.id}')" title="Delete">🗑️</span></div></div><div class="crab-status status-${cssStatus(c.weeklyStatus)}">${capitalize(c.weeklyStatus||'Unknown')}</div><div style="font-size:.75rem;color:#999;margin-top:.5rem;">${c.crabType||'—'}</div><div style="font-size:.75rem;color:#999;">${c.location||'—'}</div><div class="crab-age-display ${age.cls}">⏱ ${age.text}</div></div>`;
+        }).join('');
+        return `<div class="rack-group" style="grid-column:1/-1;"><div class="rack-group-label">🏗️ Rack ${letter} &nbsp;<span style="font-weight:400;color:#aaa;">${gc.length} box${gc.length!==1?'es':''}</span></div><div class="rack-group-cards">${cards}</div></div>`;
+    }).join('');
+}
+
+/* Stat Detail Modal */
+window.showStatModal=(type)=>{
+    const crabs=window._allCrabs||[], deleted=window._deletedCrabs||[];
+    let filtered,title,subtitle,hClass;
+    switch(type){
+        case 'total':     filtered=crabs.filter(c=>(c.weeklyStatus||'').toLowerCase()!=='sold'&&(c.weeklyStatus||'').toLowerCase()!=='dead').sort((a,b)=>boxSort(a.boxNo||a.id,b.boxNo||b.id)); title='🦀 Active Crabs'; subtitle=`${filtered.length} active crab${filtered.length!==1?'s':''} (excludes sold & dead)`; hClass='total'; break;
+        case 'healthy':   filtered=crabs.filter(c=>c.weeklyStatus==='healthy').sort((a,b)=>boxSort(a.boxNo||a.id,b.boxNo||b.id)); title='💚 Healthy Crabs'; subtitle=`${filtered.length} healthy crabs`; hClass='healthy'; break;
+        case 'mortality': filtered=deleted.filter(c=>c.weeklyStatus==='Dead').sort((a,b)=>(b.diedAt||b.timestamp||0)-(a.diedAt||a.timestamp||0)); title='💀 Mortality Records'; subtitle=`${filtered.length} mortality record${filtered.length!==1?'s':''}`; hClass='mortality'; break;
+        case 'sell':      filtered=crabs.filter(c=>c.weeklyStatus==='Ready to Sell').sort((a,b)=>boxSort(a.boxNo||a.id,b.boxNo||b.id)); title='💰 Ready to Sell'; subtitle=`${filtered.length} crabs ready for sale`; hClass='sell'; break;
+        case 'sold':      filtered=deleted.filter(c=>c.weeklyStatus==='Sold').sort((a,b)=>(b.soldAt||b.timestamp||0)-(a.soldAt||a.timestamp||0)); title='🏷️ Sold Crabs'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} sold`; hClass='sold'; break;
+        case 'age-days':  filtered=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-days').sort((a,b)=>computeAgeDays(a.dateIn)-computeAgeDays(b.dateIn)); title='🦀 Day 1–6 (New Arrivals)'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} in early days`; hClass='age-days'; break;
+        case 'age-week1': filtered=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week1').sort((a,b)=>computeAgeDays(a.dateIn)-computeAgeDays(b.dateIn)); title='📅 Week 1 (Days 7–13)'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} in Week 1`; hClass='age-week1'; break;
+        case 'age-week2': filtered=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week2').sort((a,b)=>computeAgeDays(a.dateIn)-computeAgeDays(b.dateIn)); title='📆 Week 2 (Days 14–20)'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} in Week 2`; hClass='age-week2'; break;
+        case 'age-week3plus': filtered=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week3plus').sort((a,b)=>computeAgeDays(a.dateIn)-computeAgeDays(b.dateIn)); title='🗓️ Week 3 (Days 21–27)'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} in Week 3`; hClass='age-week3plus'; break;
+        case 'age-week4': filtered=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week4').sort((a,b)=>computeAgeDays(a.dateIn)-computeAgeDays(b.dateIn)); title='🗓️ Week 4+ (Day 28+)'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} in Week 4+`; hClass='age-week4'; break;
+    }
+    window._statCrabs=filtered; window._statType=type;
+    document.getElementById('statDetailHeader').className=`detail-modal-header ${hClass}`;
+    document.getElementById('statDetailTitle').textContent=title;
+    document.getElementById('statDetailSubtitle').textContent=subtitle;
+    document.getElementById('statDetailSearch').value='';
+    renderStatList(filtered,type);
+    document.getElementById('statDetailModal').style.display='block';
+};
+
+function renderStatList(crabs,type){
+    const body=document.getElementById('statDetailBody');
+    const isSold=(type==='sold'), isDead=(type==='mortality'), isAge=type.startsWith('age-');
+    if(!crabs.length){ body.innerHTML='<div class="empty-state" style="padding:3rem;"><div style="font-size:3rem;margin-bottom:1rem;">🔍</div><div>No records found</div></div>'; return; }
+    body.innerHTML=crabs.map(c=>{
+        const sk=(c.weeklyStatus||'').toLowerCase().replace(/\s+/g,'');
+        const bCls=sk==='healthy'?'badge-healthy':sk==='dead'?'badge-dead':sk==='readytosell'?'badge-sell':sk==='sold'?'badge-sold':'badge-unknown';
+        const iCls=isAge?type:(type==='healthy'?'healthy':type==='mortality'?'dead':type==='sell'?'sell':type==='sold'?'sold':'total');
+        const wDiff=(c.currentWeight!=null&&c.originWeight!=null)?(parseFloat(c.currentWeight)-parseFloat(c.originWeight)).toFixed(2):null;
+        const wDiffHtml=wDiff!==null?`<span style="color:${wDiff>=0?'#28a745':'#dc3545'};font-size:.72rem;margin-left:3px;">(${wDiff>=0?'+':''}${wDiff}g)</span>`:'';
+        const days=computeAgeDays(c.dateIn), age=ageLabel(days), ageText=days!==null?`${age.text} (${days} day${days!==1?'s':''})`:'—';
+        const soldF=isSold?`<div class="crab-detail-field sold-highlight" style="grid-column:span 2;"><div class="crab-detail-field-label">🏷️ Date Sold</div><div class="crab-detail-field-value">${fmtSoldDate(c.soldAt||c.timestamp)}</div></div>`:'';
+        const deadF=isDead?`<div class="crab-detail-field dead-highlight" style="grid-column:span 2;"><div class="crab-detail-field-label">💀 Date Died</div><div class="crab-detail-field-value">${fmtSoldDate(c.diedAt||c.updatedAt||c.timestamp)}</div></div>`:'';
+        return `<div class="crab-detail-item ${iCls}"><div class="crab-detail-top"><div><div class="crab-detail-box">${c.boxNo||c.id}</div><div class="crab-detail-type">${c.crabType||'Unknown Type'}</div></div><span class="crab-detail-badge ${bCls}">${c.weeklyStatus||'Unknown'}</span></div><div class="crab-detail-grid">${soldF}${deadF}<div class="crab-detail-field age-highlight"><div class="crab-detail-field-label">⏱ Age</div><div class="crab-detail-field-value">${ageText}</div></div><div class="crab-detail-field"><div class="crab-detail-field-label">📅 Date In</div><div class="crab-detail-field-value">${c.dateIn||'—'}</div></div><div class="crab-detail-field"><div class="crab-detail-field-label">📍 Location</div><div class="crab-detail-field-value">${c.location||'—'}</div></div><div class="crab-detail-field"><div class="crab-detail-field-label">⚖️ Current Wt.</div><div class="crab-detail-field-value">${c.currentWeight!=null?c.currentWeight+' g':'—'}${wDiffHtml}</div></div><div class="crab-detail-field"><div class="crab-detail-field-label">⚖️ Origin Wt.</div><div class="crab-detail-field-value">${c.originWeight!=null?c.originWeight+' g':'—'}</div></div><div class="crab-detail-field"><div class="crab-detail-field-label">🚻 Gender</div><div class="crab-detail-field-value">${capitalize(c.gender||'—')}</div></div><div class="crab-detail-field"><div class="crab-detail-field-label">🏷️ Class</div><div class="crab-detail-field-value">${c.crabClass?'Class '+c.crabClass:'—'}</div></div><div class="crab-detail-field"><div class="crab-detail-field-label">🌊 Origin</div><div class="crab-detail-field-value">${c.crabOrigin||'—'}</div></div><div class="crab-detail-field"><div class="crab-detail-field-label">👤 ${isSold?'Sold By':isDead?'Recorded Dead By':'Recorded By'}</div><div class="crab-detail-field-value">${isSold?(c.soldBy||c.recordedBy||'—'):isDead?(c.diedBy||c.updatedBy||c.recordedBy||'—'):(c.recordedBy||'—')}</div></div></div>${c.notes?`<div class="crab-detail-notes">📝 ${c.notes}</div>`:''}</div>`;
+    }).join('');
+}
+window.filterStatDetail=()=>{ const q=document.getElementById('statDetailSearch').value.toLowerCase(); renderStatList((window._statCrabs||[]).filter(c=>{ const age=ageLabel(computeAgeDays(c.dateIn)); return (c.boxNo||c.id||'').toLowerCase().includes(q)||(c.crabType||'').toLowerCase().includes(q)||(c.location||'').toLowerCase().includes(q)||(c.gender||'').toLowerCase().includes(q)||(c.crabOrigin||'').toLowerCase().includes(q)||(c.weeklyStatus||'').toLowerCase().includes(q)||age.text.toLowerCase().includes(q)||(c.dateIn||'').includes(q); }),window._statType); };
+window.closeStatDetailModal=()=>document.getElementById('statDetailModal').style.display='none';
+
+/* Box dropdown */
+window.onBoxNoInput=()=>{
+    if(window._editingKey)return;
+    const val=(document.getElementById('boxNo').value||'').toUpperCase().trim();
+    const takenSet=new Set((window._allCrabs||[]).map(c=>(c.boxNo||'').toUpperCase()).filter(Boolean));
+    const historic=(window._deletedCrabs||[]).map(c=>(c.boxNo||'').toUpperCase()).filter(Boolean);
+    const pool=[...new Set([...ALL_BOXES,...historic])].sort((a,b)=>boxSort(a,b));
+    let matches=val?pool.filter(b=>b.includes(val)):pool;
+    matches=[...matches].sort((a,b)=>{ const ae=!takenSet.has(a),be=!takenSet.has(b); if(ae&&!be)return -1; if(!ae&&be)return 1; return boxSort(a,b); });
+    const dd=document.getElementById('boxNoDropdown');
+    if(!matches.length){ dd.classList.remove('open'); return; }
+    const empty=matches.filter(b=>!takenSet.has(b)), taken=matches.filter(b=>takenSet.has(b));
+    let html='';
+    if(empty.length){ html+=`<div class="boxno-section-label">✅ Available (${empty.length})</div>`; html+=empty.map(b=>`<div class="boxno-option" onmousedown="selectBoxNo('${b}')">${b}<span class="box-tag tag-empty">Empty</span></div>`).join(''); }
+    if(taken.length){ html+=`<div class="boxno-section-label">⛔ Already used (${taken.length})</div>`; html+=taken.map(b=>`<div class="boxno-option" onmousedown="selectBoxNo('${b}')">${b}<span class="box-tag tag-occupied">Occupied</span></div>`).join(''); }
+    dd.innerHTML=html; dd.classList.add('open');
+};
+window.selectBoxNo=val=>{ document.getElementById('boxNo').value=val; document.getElementById('boxNoDropdown').classList.remove('open'); };
+window.delayCloseDropdown=()=>setTimeout(()=>document.getElementById('boxNoDropdown').classList.remove('open'),180);
+window.updateAgePreview=()=>{
+    const dateIn=document.getElementById('dateIn').value, preview=document.getElementById('agePreview'), today=getTodayString();
+    if(dateIn&&dateIn>today){ document.getElementById('dateIn').value=today; preview.textContent=''; return; }
+    const days=computeAgeDays(dateIn); if(days===null){ preview.textContent=''; return; }
+    const age=ageLabel(days); preview.textContent=`⏱ Age: ${age.text} (${days} day${days!==1?'s':''})`;
+};
+function setDateInMax(){ document.getElementById('dateIn').max=getTodayString(); }
+function isBoxTaken(boxNoVal,excludeKey){ return (window._allCrabs||[]).some(c=>(c.boxNo||'').toUpperCase()===boxNoVal&&c.id!==excludeKey); }
+
+/* ══════════════════════════════════════════════
+   FORM SUBMIT — ADD & EDIT (with activityLog)
+══════════════════════════════════════════════ */
+document.getElementById('crabDataForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const btn=document.getElementById('saveBtn'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Saving...';
+    const key=window._editingKey, boxNoVal=document.getElementById('boxNo').value.trim().toUpperCase();
+    const dateInVal=document.getElementById('dateIn').value, today=getTodayString();
+    if(dateInVal>today){ showToast('❌ Date In cannot be a future date!','error'); btn.disabled=false; btn.innerHTML='💾 Save Data'; return; }
+    if(!key&&isBoxTaken(boxNoVal,null)){ showToast(`❌ Box ${boxNoVal} is already in use!`,'error'); btn.disabled=false; btn.innerHTML='💾 Save Data'; return; }
+    const currentUser=(()=>{ try{ return JSON.parse(sessionStorage.getItem('crabMonitoringSession'))?.username||'Unknown'; }catch{ return 'Unknown'; } })();
+    const now=Date.now();
+    const baseData={ dateIn:dateInVal, boxNo:boxNoVal, crabOrigin:document.getElementById('crabOrigin').value, gender:document.getElementById('gender').value, crabType:document.getElementById('crabType').value, crabClass:document.getElementById('crabClass').value, originWeight:parseFloat(document.getElementById('originWeight').value), currentWeight:parseFloat(document.getElementById('currentWeight').value), weeklyStatus:document.getElementById('weeklyStatus').value, location:document.getElementById('location').value, notes:document.getElementById('notes').value, timestamp:now, recordedBy:currentUser };
+    const isSold=baseData.weeklyStatus==='Sold', isDead=baseData.weeklyStatus==='Dead';
+    try{
+        const{db,ref,set,push,get}=window._fb;
+
+        if(key){
+            // ── EDIT existing crab ──
+            const existingSnap=await get(ref(db,`crabs/${key}`));
+            const existing=existingSnap.exists()?existingSnap.val():{};
+            const prevDead=existing.weeklyStatus==='Dead';
+
+            // Compare fields to find what changed
+            const changelog = buildChangelog(existing, baseData);
+
+            const data={...baseData,
+                createdAt:existing.createdAt||existing.timestamp||now,
+                addedBy:existing.addedBy||existing.recordedBy||currentUser,
+                updatedAt:now, updatedBy:currentUser,
+                ...(isDead?{diedAt:prevDead?(existing.diedAt||now):now, diedBy:prevDead?(existing.diedBy||currentUser):currentUser}:{})
+            };
+
+            if(isSold){
+                const finalData={...data,soldAt:now,soldBy:currentUser};
+                await set(ref(db,`deletedCrabs/${key}`),finalData);
+                await set(ref(db,`crabs/${key}`),null);
+                await writeLog('sold', boxNoVal, finalData, {}, currentUser, now);
+                showToast(`🏷️ ${boxNoVal} marked as Sold — box is now free!`,'success');
+            } else if(isDead){
+                const finalData={...data,diedAt:data.diedAt||now,diedBy:data.diedBy||currentUser};
+                await set(ref(db,`deletedCrabs/${key}`),finalData);
+                await set(ref(db,`crabs/${key}`),null);
+                await writeLog('dead', boxNoVal, finalData, {}, currentUser, now);
+                showToast(`💀 ${boxNoVal} marked as Dead — box is now free!`,'success');
+            } else {
+                await set(ref(db,`crabs/${key}`),data);
+                // Only write an 'updated' log if something actually changed
+                if(Object.keys(changelog).length > 0){
+                    await writeLog('updated', boxNoVal, data, changelog, currentUser, now);
+                }
+                showToast(`✅ ${boxNoVal} updated!`,'success');
+            }
+
+        } else {
+            // ── ADD new crab ──
+            const data={...baseData, createdAt:now, addedBy:currentUser,
+                ...(isDead?{diedAt:now,diedBy:currentUser}:{})};
+
+            if(isSold){
+                const finalData={...data,soldAt:now,soldBy:currentUser};
+                await push(ref(db,'deletedCrabs'),finalData);
+                await writeLog('sold', boxNoVal, finalData, {}, currentUser, now);
+                showToast(`🏷️ ${boxNoVal} recorded as Sold!`,'success');
+            } else if(isDead){
+                const finalData={...data,diedAt:now,diedBy:currentUser};
+                await push(ref(db,'deletedCrabs'),finalData);
+                await writeLog('dead', boxNoVal, finalData, {}, currentUser, now);
+                showToast(`💀 ${boxNoVal} recorded as Dead!`,'success');
+            } else {
+                await push(ref(db,'crabs'),data);
+                await writeLog('added', boxNoVal, data, {}, currentUser, now);
+                showToast(`✅ ${boxNoVal} saved!`,'success');
+            }
+        }
+        closeCrabModal();
+    } catch(err){ showToast(`❌ Error: ${err.message}`,'error'); }
+    btn.disabled=false; btn.innerHTML='💾 Save Data';
+});
+
+window.openEditModal=async(key)=>{
+    const{db,ref,get}=window._fb; const snap=await get(ref(db,`crabs/${key}`)); if(!snap.exists())return;
+    const d=snap.val(); window._editingKey=key; setDateInMax();
+    document.getElementById('modalTitle').textContent=`Edit Crab — ${d.boxNo||key}`;
+    ['dateIn','boxNo','crabOrigin','gender','crabType','crabClass','originWeight','currentWeight','weeklyStatus','location','notes'].forEach(id=>document.getElementById(id).value=d[id]||'');
+    document.getElementById('boxNo').readOnly=true; document.getElementById('saveBtn').textContent='💾 Update Data';
+    document.getElementById('crabModal').style.display='block'; updateAgePreview();
+};
+window.openAddCrabModal=()=>{
+    window._editingKey=null; document.getElementById('boxNo').readOnly=false;
+    document.getElementById('modalTitle').textContent='Add New Crab'; document.getElementById('crabDataForm').reset();
+    document.getElementById('saveBtn').textContent='💾 Save Data'; document.getElementById('boxNoDropdown').classList.remove('open');
+    document.getElementById('agePreview').textContent=''; setDateInMax();
+    document.getElementById('crabModal').style.display='block';
+    setTimeout(()=>{ const takenSet=new Set((window._allCrabs||[]).map(c=>(c.boxNo||'').toUpperCase()).filter(Boolean)); const del=window._deletedCrabs||[]; const hist=del.map(c=>(c.boxNo||'').toUpperCase()).filter(Boolean); const pool=[...new Set([...ALL_BOXES,...hist])].sort((a,b)=>boxSort(a,b)); const ff=pool.find(b=>!takenSet.has(b)); if(ff)document.getElementById('boxNo').placeholder=`Next available: ${ff}`; },60);
+};
+
+window.deleteCrab=async(key,boxNo)=>{
+    if(!confirm(`Delete crab ${boxNo}? This cannot be undone.`))return;
+    const{db,ref,set,get}=window._fb;
+    try{
+        const snap=await get(ref(db,`crabs/${key}`));
+        if(snap.exists()){
+            const data=snap.val();
+            const remover=(()=>{ try{ return JSON.parse(sessionStorage.getItem('crabMonitoringSession'))?.username||'Unknown'; }catch{ return 'Unknown'; } })();
+            const finalData={...data,weeklyStatus:'Removed',removedAt:Date.now(),removedBy:remover,
+                createdAt:data.createdAt||data.timestamp,addedBy:data.addedBy||data.recordedBy||remover,
+                updatedAt:data.updatedAt||null,updatedBy:data.updatedBy||null};
+            await set(ref(db,`deletedCrabs/${key}`),finalData);
+            await writeLog('removed', boxNo, finalData, {}, remover, Date.now());
+        }
+        await set(ref(db,`crabs/${key}`),null);
+        showToast(`✅ ${boxNo} deleted!`,'success');
+    } catch(err){ showToast(`❌ ${err.message}`,'error'); }
+};
+
+function closeCrabModal(){ document.getElementById('crabModal').style.display='none'; document.getElementById('crabDataForm').reset(); document.getElementById('boxNoDropdown').classList.remove('open'); document.getElementById('agePreview').textContent=''; window._editingKey=null; }
+window.closeCrabModal=closeCrabModal;
+window.onclick=e=>{ if(e.target===document.getElementById('crabModal'))closeCrabModal(); if(e.target===document.getElementById('statDetailModal'))closeStatDetailModal(); if(e.target===document.getElementById('allBoxesModal'))closeAllBoxesModal(); };
+
+/* ══════════════════════════════════════════════
+   HISTORY LOGIC — reads from activityLog only
+══════════════════════════════════════════════ */
+let _currentPage=1, _filteredData=[], _perPage=15;
+
+function capH(s){ return s?s.charAt(0).toUpperCase()+s.slice(1):''; }
+function ageDaysH(dateIn){ if(!dateIn)return null; const d=new Date(dateIn+'T00:00:00'); if(isNaN(d))return null; const t=new Date(); t.setHours(0,0,0,0); const diff=Math.floor((t-d)/86400000); return diff<0?0:diff; }
+function ageLabelH(days){ if(days===null||days===undefined)return '—'; if(days<=6)return `Day ${days===0?1:days+1}`; return `Week ${Math.floor(days/7)} (${days}d)`; }
+function fmtDateTime(ts){ if(!ts)return '—'; const d=new Date(ts); return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+', '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}); }
+function statusStyleH(weeklyStatus,action){ const st=(weeklyStatus||'').toLowerCase().replace(/\s+/g,''); const label=capH(weeklyStatus||'Unknown'); let bg='#f1f5f9',color='#475569'; if(action==='removed'){bg='#fee2e2';color='#b91c1c';} else if(action==='dead'||st==='dead'){bg='#fef3c7';color='#92400e';} else if(st==='healthy'){bg='#dcfce7';color='#15803d';} else if(st==='readytosell'){bg='#fef3c7';color='#92400e';} else if(st==='sold'){bg='#f1f5f9';color='#475569';} return{label,bg,color}; }
+function actionLabel(a){ if(a==='added')return '✅ Added'; if(a==='updated')return '✏️ Updated'; if(a==='sold')return '🏷️ Sold'; if(a==='dead')return '💀 Dead'; return '🗑️ Removed'; }
+
+// Friendly field name mapping for changelog display
+const FIELD_LABELS = {
+    dateIn:'Date In', crabOrigin:'Origin', gender:'Gender', crabType:'Type',
+    crabClass:'Class', originWeight:'Orig.Wt', currentWeight:'Curr.Wt',
+    weeklyStatus:'Status', location:'Location', notes:'Notes'
+};
+
+function onFilterChange(){ _currentPage=1; filterHistory(); }
+window.onFilterChange=onFilterChange;
+function onPerPageChange(){ _perPage=parseInt(document.getElementById('perPageSelect').value,10)||15; _currentPage=1; renderPage(); }
+window.onPerPageChange=onPerPageChange;
+
+function filterHistory(){
+    const q=(document.getElementById('histSearch').value||'').toLowerCase();
+    const action=document.getElementById('histAction').value, type=document.getElementById('histType').value;
+    const sort=document.getElementById('histSort').value, group=document.getElementById('histGroup').value;
+
+    // Use activityLog events directly — no reconstruction needed
+    let data=[...(window._allEvents||[])];
+
+    if(action) data=data.filter(e=>e.action===action);
+    if(type)   data=data.filter(e=>(e.crabType||'')===type);
+    if(q) data=data.filter(e=>
+        (e.boxNo||'').toLowerCase().includes(q)||
+        (e.crabType||'').toLowerCase().includes(q)||
+        (e.location||'').toLowerCase().includes(q)||
+        (e.weeklyStatus||'').toLowerCase().includes(q)||
+        (e.addedBy||'').toLowerCase().includes(q)||
+        (e.eventBy||'').toLowerCase().includes(q)||
+        (e.notes||'').toLowerCase().includes(q)||
+        Object.keys(e.changes||{}).some(f=>FIELD_LABELS[f]&&FIELD_LABELS[f].toLowerCase().includes(q))
+    );
+
+    if(sort==='newest') data.sort((a,b)=>(b.eventTs||0)-(a.eventTs||0));
+    else                data.sort((a,b)=>(a.eventTs||0)-(b.eventTs||0));
+
+    if(group==='box'){
+        const grouped={},order=[];
+        data.forEach(e=>{ const key=(e.boxNo||'?').toUpperCase(); if(!grouped[key]){grouped[key]=[];order.push(key);} grouped[key].push(e); });
+        const flat=[]; order.forEach(bk=>{ flat.push({_isGroupHeader:true,_groupKey:bk,_groupCount:grouped[bk].length}); grouped[bk].forEach(e=>flat.push(e)); });
+        _filteredData=flat;
+    } else { _filteredData=data; }
+
+    document.getElementById('histCountBadge').textContent=`${data.length} event${data.length!==1?'s':''}`;
+    renderPage();
+}
+
+function renderPage(){
+    const realRows=_filteredData.filter(r=>!r._isGroupHeader), totalReal=realRows.length;
+    const totalPages=Math.max(1,Math.ceil(totalReal/_perPage));
+    if(_currentPage>totalPages)_currentPage=totalPages; if(_currentPage<1)_currentPage=1;
+    const startIdx=(_currentPage-1)*_perPage, endIdx=Math.min(startIdx+_perPage,totalReal);
+    const pageSet=new Set(realRows.slice(startIdx,endIdx).map((e,i)=>startIdx+i));
+    let displayList=[],realIdx=0,activeGroup=null;
+    _filteredData.forEach(row=>{ if(row._isGroupHeader){activeGroup=row;return;} if(pageSet.has(realIdx)){ if(activeGroup&&(!displayList.length||displayList[displayList.length-1]._groupKey!==activeGroup._groupKey))displayList.push(activeGroup); displayList.push(row); } realIdx++; });
+    renderTable(displayList,startIdx); updatePaginationUI(totalReal,startIdx+1,endIdx,totalPages);
+}
+
+function renderTable(displayList,globalStartIdx){
+    const tbody=document.getElementById('histTableBody');
+    if(!displayList.length||(displayList.length===1&&displayList[0]._isGroupHeader)){
+        tbody.innerHTML='<tr><td colspan="16"><div class="empty-state"><div class="empty-icon" style="font-size:2.5rem;margin-bottom:.75rem;">📭</div><div class="empty-text" style="font-size:.9rem;font-weight:500;">No events found</div></div></td></tr>'; return;
+    }
+    let rows='',seq=globalStartIdx;
+    displayList.forEach(row=>{ if(row._isGroupHeader){ rows+=`<tr class="group-header"><td colspan="16">📦 Box ${row._groupKey} &nbsp;—&nbsp; ${row._groupCount} event${row._groupCount!==1?'s':''}</td></tr>`; } else { seq++; rows+=buildRow(row,seq); } });
+    tbody.innerHTML=rows;
+}
+
+function buildRow(e,seq){
+    const a=e.action, days=ageDaysH(e.dateIn);
+    const wDiff=(e.currentWeight!=null&&e.originWeight!=null)?(parseFloat(e.currentWeight)-parseFloat(e.originWeight)).toFixed(1):null;
+    const wHtml=wDiff!==null?` <span class="wdiff ${parseFloat(wDiff)>=0?'pos':'neg'}">(${parseFloat(wDiff)>=0?'+':''}${wDiff}g)</span>`:'';
+    const{label:sLabel,bg:sBg,color:sColor}=statusStyleH(e.weeklyStatus,a);
+
+    // Build changelog pills for 'updated' rows
+    let changeHtml='—';
+    if(a==='updated' && e.changes && Object.keys(e.changes).length){
+        const pills = Object.entries(e.changes).map(([f,{from,to}])=>{
+            const label = FIELD_LABELS[f]||f;
+            const fromStr = from!=null?String(from):'—';
+            const toStr   = to!=null?String(to):'—';
+            return `<span class="changelog-pill" title="${label}: ${fromStr} → ${toStr}">${label}: ${fromStr}→${toStr}</span>`;
+        }).join('');
+        changeHtml=`<div class="changelog-wrap">${pills}</div>`;
+    } else if(a!=='updated'){
+        changeHtml='<span style="color:#ccc;font-size:.72rem;">—</span>';
+    }
+
+    return `<tr class="row-${a}">
+        <td style="color:var(--gray-400);font-size:.7rem;font-family:'DM Mono',monospace;">${seq}</td>
+        <td class="bold">${e.boxNo||'—'}</td>
+        <td><span class="action-badge action-${a}">${actionLabel(a)}</span></td>
+        <td>${e.crabType||'—'}</td>
+        <td>${e.crabClass?'Class '+e.crabClass:'—'}</td>
+        <td>${capH(e.gender||'—')}</td>
+        <td>${e.location||'—'}</td>
+        <td><span class="status-pill" style="background:${sBg};color:${sColor};">${sLabel}</span></td>
+        <td style="font-size:.75rem;">${e.dateIn||'—'}</td>
+        <td style="font-size:.75rem;">${days!==null?ageLabelH(days):'—'}</td>
+        <td style="font-size:.75rem;">${e.originWeight!=null?e.originWeight+'g':'—'}</td>
+        <td style="font-size:.75rem;">${e.currentWeight!=null?e.currentWeight+'g':'—'}${wHtml}</td>
+        <td style="font-size:.72rem;">${changeHtml}</td>
+        <td style="font-size:.72rem;color:#94a3b8;">${e.addedBy||'—'}</td>
+        <td style="font-size:.72rem;color:#334155;font-weight:600;">${e.eventBy||'—'}</td>
+        <td style="font-size:.72rem;color:#94a3b8;">${e.eventTs?fmtDateTime(e.eventTs):'—'}</td>
+    </tr>`;
+}
+
+function updatePaginationUI(totalReal,from,to,totalPages){
+    const wrap=document.getElementById('paginationWrap'), infoEl=document.getElementById('pageInfo'), ctrlsEl=document.getElementById('pageControls');
+    if(totalReal===0){wrap.style.display='none';return;} wrap.style.display='flex';
+    infoEl.innerHTML=`Showing <strong>${from}–${to}</strong> of <strong>${totalReal}</strong> event${totalReal!==1?'s':''}`;
+    const cur=_currentPage;
+    const mkBtn=(label,page,active=false,disabled=false)=>`<button class="page-btn${active?' active':''}" ${disabled?'disabled':''} onclick="goToPage(${page})">${label}</button>`;
+    let btns=mkBtn('‹ Prev',cur-1,false,cur===1);
+    if(totalPages<=7){ for(let i=1;i<=totalPages;i++)btns+=mkBtn(i,i,i===cur); }
+    else{ btns+=mkBtn(1,1,cur===1); if(cur>4)btns+='<span class="page-ellipsis">…</span>'; const start=Math.max(2,cur-2),end=Math.min(totalPages-1,cur+2); for(let i=start;i<=end;i++)btns+=mkBtn(i,i,i===cur); if(cur<totalPages-3)btns+='<span class="page-ellipsis">…</span>'; btns+=mkBtn(totalPages,totalPages,cur===totalPages); }
+    btns+=mkBtn('Next ›',cur+1,false,cur===totalPages); ctrlsEl.innerHTML=btns;
+}
+window.goToPage=function(page){ const totalPages=Math.max(1,Math.ceil(_filteredData.filter(r=>!r._isGroupHeader).length/_perPage)); if(page<1||page>totalPages)return; _currentPage=page; renderPage(); document.querySelector('.table-wrap').scrollIntoView({behavior:'smooth',block:'nearest'}); };
+
+window.exportCSV=()=>{
+    const realRows=_filteredData.filter(r=>!r._isGroupHeader);
+    if(!realRows.length){ showToast('No data to export','error'); return; }
+    const headers=['#','Box No.','Action','Type','Class','Gender','Location','Status','Date In','Age','Orig. Wt.','Curr. Wt.','Changes','Added By','Action By','Action At'];
+    const rows=realRows.map((e,i)=>{
+        const days=ageDaysH(e.dateIn);
+        const changesStr=e.changes&&Object.keys(e.changes).length
+            ? Object.entries(e.changes).map(([f,{from,to}])=>`${FIELD_LABELS[f]||f}: ${from??''}→${to??''}`).join('; ')
+            : '';
+        return [i+1,e.boxNo||'',e.action,e.crabType||'',e.crabClass?'Class '+e.crabClass:'',e.gender||'',e.location||'',e.weeklyStatus||'',e.dateIn||'',days!==null?ageLabelH(days):'',e.originWeight!=null?e.originWeight+'g':'',e.currentWeight!=null?e.currentWeight+'g':'',changesStr,e.addedBy||'',e.eventBy||'',e.eventTs?fmtDateTime(e.eventTs):''].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
+    });
+    const csv=[headers.join(','),...rows].join('\n');
+    const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download=`crab-activity-log-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    showToast('📥 CSV exported!','success');
+};
+
+/* Scroll thumb sync */
+(function(){
+    const wrap=document.getElementById('tableWrap'), thumb=document.getElementById('scrollThumb');
+    if(!wrap||!thumb)return;
+    wrap.addEventListener('scroll',()=>{ const max=wrap.scrollWidth-wrap.clientWidth; if(max<=0){thumb.style.left='0%';return;} const pct=wrap.scrollLeft/max, w=28; thumb.style.width=w+'%'; thumb.style.left=(pct*(100-w))+'%'; },{passive:true});
+})();
+
+// ==== HEARTBEAT SYSTEM ====
+let _heartbeatInterval = null;
+const HEARTBEAT_INTERVAL = 30000; // 30 seconds
+
+function startHeartbeat() {
+    if (_heartbeatInterval) clearInterval(_heartbeatInterval);
+    
+    // Update immediately
+    updateHeartbeat();
+    
+    // Then update every 30 seconds
+    _heartbeatInterval = setInterval(updateHeartbeat, HEARTBEAT_INTERVAL);
+}
+
+function updateHeartbeat() {
+    const session = JSON.parse(sessionStorage.getItem('crabMonitoringSession') || '{}');
+    if (!session.username || session.username === 'admin') return;
+    
+    // Update lastActive in Firebase users collection
+    const usersRef = ref(db, 'users');
+    get(usersRef).then(snap => {
+        if (snap.exists()) {
+            const users = snap.val();
+            for (const [key, user] of Object.entries(users)) {
+                if (user.username === session.username) {
+                    set(ref(db, `users/${key}`), {
+                        ...user,
+                        isLoggedIn: true,
+                        lastActive: Date.now()
+                    });
+                    break;
+                }
+            }
+        }
+    }).catch(err => console.error('Heartbeat update failed:', err));
+}
+
+function stopHeartbeat() {
+    if (_heartbeatInterval) {
+        clearInterval(_heartbeatInterval);
+        _heartbeatInterval = null;
+    }
+    
+    // Mark user as offline when logging out
+    const session = JSON.parse(sessionStorage.getItem('crabMonitoringSession') || '{}');
+    if (session.username && session.username !== 'admin') {
+        const usersRef = ref(db, 'users');
+        get(usersRef).then(snap => {
+            if (snap.exists()) {
+                const users = snap.val();
+                for (const [key, user] of Object.entries(users)) {
+                    if (user.username === session.username) {
+                        set(ref(db, `users/${key}`), {
+                            ...user,
+                            isLoggedIn: false,
+                            lastActive: Date.now()
+                        });
+                        break;
+                    }
+                }
+            }
+        }).catch(err => console.error('Heartbeat logout failed:', err));
+    }
+}
+
+// Update the bootApp function to start heartbeat
+const originalBootApp = window.bootApp;
+window.bootApp = function(session) {
+    if (originalBootApp) originalBootApp(session);
+    startHeartbeat();
+};
+
+// Update the doLogout function to stop heartbeat
+const originalDoLogout = window.doLogout;
+window.doLogout = function() {
+    stopHeartbeat();
+    if (originalDoLogout) originalDoLogout();
+};
+
+// Handle page visibility changes to optimize heartbeat
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        // Page is hidden, reduce heartbeat frequency
+        if (_heartbeatInterval) {
+            clearInterval(_heartbeatInterval);
+            _heartbeatInterval = setInterval(updateHeartbeat, HEARTBEAT_INTERVAL * 2); // 1 minute when hidden
+        }
+    } else {
+        // Page is visible, restore normal heartbeat
+        startHeartbeat();
+    }
+});
+
+// Handle page unload to mark user as offline
+window.addEventListener('beforeunload', () => {
+    stopHeartbeat();
+});
+</script>
+</body>
+</html>
