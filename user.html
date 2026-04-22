@@ -668,6 +668,7 @@
                             <select id="reportDateType">
                                 <option value="dateIn">📅 Date In</option>
                                 <option value="dateSold">🏷️ Date Sold</option>
+                                <option value="dateDead">💀 Date ofDead</option>
                             </select>
                         </div>
                         <div class="report-group">
@@ -1454,6 +1455,8 @@ window.showReportData = () => {
                 relevantDate = c.dateIn ? new Date(c.dateIn) : null;
             } else if (dateType === 'dateSold') {
                 relevantDate = c.soldAt ? new Date(c.soldAt) : null;
+            } else if (dateType === 'dateDead') {
+                relevantDate = c.deadAt ? new Date(c.deadAt) : null;
             }
             return relevantDate && relevantDate >= from;
         });
@@ -1468,6 +1471,8 @@ window.showReportData = () => {
                 relevantDate = c.dateIn ? new Date(c.dateIn) : null;
             } else if (dateType === 'dateSold') {
                 relevantDate = c.soldAt ? new Date(c.soldAt) : null;
+            } else if (dateType === 'dateDead') {
+                relevantDate = c.deadAt ? new Date(c.deadAt) : null;
             }
             return relevantDate && relevantDate <= to;
         });
@@ -1492,6 +1497,9 @@ window.showReportData = () => {
         } else if (dateType === 'dateSold') {
             dateA = a.soldAt ? new Date(a.soldAt) : new Date(0);
             dateB = b.soldAt ? new Date(b.soldAt) : new Date(0);
+        } else if (dateType === 'dateDead') {
+            dateA = a.deadAt ? new Date(a.deadAt) : new Date(0);
+            dateB = b.deadAt ? new Date(b.deadAt) : new Date(0);
         }
         return dateB - dateA;
     });
