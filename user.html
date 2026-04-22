@@ -1173,7 +1173,7 @@ function updateStats(crabs,deleted){
 
 function renderObservations(crabs){
     const list=document.getElementById('observationsList');
-    const sorted=[...crabs].sort((a,b)=>(b.timestamp||0)-(a.timestamp||0)).slice(0,10);
+    const sorted=[...crabs].sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
     if(!sorted.length){ list.innerHTML='<div class="empty-state">No observations yet.</div>'; return; }
     list.innerHTML=sorted.map(c=>{ const days=computeAgeDays(c.dateIn), age=ageLabel(days);
         return `<div class="observation-item"><div class="observation-info"><div class="observation-species">${c.crabType||'Unknown'} — <strong>${c.boxNo||c.id}</strong><span class="age-badge ${age.cls}">⏱ ${age.text}</span></div><div class="observation-details">${c.location||'Unknown Site'} &bull; ${fmtTime(c.timestamp)}</div></div><div class="observation-status status-${cssStatus(c.weeklyStatus)}">${capitalize(c.weeklyStatus||'Unknown')}</div></div>`;
