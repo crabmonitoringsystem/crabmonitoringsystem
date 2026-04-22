@@ -649,18 +649,17 @@
             </div>
             <div class="report-section">
                 <div class="report-header">
-                    <h2 class="section-title">📊 Generate Report</h2>
+                    <h2 class="section-title">📊 Summary of Inventory</h2>
                 </div>
                 <div class="report-form">
                     <div class="report-row">
                         <div class="report-group">
                             <label for="reportType">Report Type</label>
                             <select id="reportType">
-                                <option value="sold">🏷️ Sold Crabs</option>
-                                <option value="dead">💀 Dead Crabs</option>
-                                <option value="healthy">💚 Healthy Crabs</option>
-                                <option value="ready-to-sell">💰 Ready to Sell</option>
-                                <option value="all-active">🦀 All Active Crabs</option>
+                                <option value="sold">🏷️ Sold</option>
+                                <option value="remaining">📦 Remaining</option>
+                                <option value="mortality">💀 Mortality</option>
+                                <option value="new-load">📥 New Load</option>
                                 <option value="all">📋 All Records</option>
                             </select>
                         </div>
@@ -695,7 +694,7 @@
                             </select>
                         </div>
                         <div class="report-actions">
-                            <button class="btn btn-primary" onclick="showReportData()">👁️ Show Data</button>
+                            <button class="btn btn-primary" onclick="showReportData()">Show Data</button>
                         </div>
                     </div>
                 </div>
@@ -1426,21 +1425,17 @@ window.showReportData = () => {
             data = (window._deletedCrabs || []).filter(c => c.weeklyStatus === 'Sold');
             title = 'Sold Crabs Report';
             break;
-        case 'dead':
-            data = (window._deletedCrabs || []).filter(c => c.weeklyStatus === 'Dead');
-            title = 'Dead Crabs Report';
-            break;
-        case 'healthy':
-            data = (window._allCrabs || []).filter(c => c.weeklyStatus === 'healthy');
-            title = 'Healthy Crabs Report';
-            break;
-        case 'ready-to-sell':
-            data = (window._allCrabs || []).filter(c => c.weeklyStatus === 'Ready to Sell');
-            title = 'Ready to Sell Crabs Report';
-            break;
-        case 'all-active':
+        case 'remaining':
             data = (window._allCrabs || []).filter(c => (c.weeklyStatus || '').toLowerCase() !== 'sold' && (c.weeklyStatus || '').toLowerCase() !== 'dead');
-            title = 'All Active Crabs Report';
+            title = 'Remaining Crabs Report';
+            break;
+        case 'mortality':
+            data = (window._deletedCrabs || []).filter(c => c.weeklyStatus === 'Dead');
+            title = 'Mortality Report';
+            break;
+        case 'new-load':
+            data = (window._allCrabs || []);
+            title = 'New Load Report';
             break;
         case 'all':
             data = [...(window._allCrabs || []), ...(window._deletedCrabs || [])];
