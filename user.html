@@ -1588,41 +1588,44 @@ window.downloadReportPDF = async () => {
     }
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const doc = new jsPDF({ orientation: 'landscape' }); // Use landscape for better fit
 
-    // Generate PDF
+    // Generate PDF with reduced margins
+    const leftMargin = 8;
+    const rightMargin = 8;
+    
     doc.setFontSize(20);
-    doc.text(title, 20, 30);
+    doc.text(title, leftMargin, 20);
 
-    doc.setFontSize(12);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 20, 45);
-    doc.text(`Total Records: ${data.length}`, 20, 55);
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, leftMargin, 32);
+    doc.text(`Total Records: ${data.length}`, leftMargin, 40);
 
     // Show applied filters
-    let yPos = 65;
+    let yPos = 48;
     if (filters.fromDate || filters.toDate) {
-        const dateTypeLabel = filters.dateType === 'dateIn' ? 'Date In' : 'Date Sold';
+        const dateTypeLabel = filters.dateType === 'dateIn' ? 'Date In' : filters.dateType === 'dateSold' ? 'Date Sold' : 'Date Dead';
         let dateRange = `${dateTypeLabel} Range: `;
         if (filters.fromDate) dateRange += `From ${new Date(filters.fromDate).toLocaleDateString()}`;
         if (filters.toDate) dateRange += ` To ${new Date(filters.toDate).toLocaleDateString()}`;
-        doc.text(dateRange, 20, yPos);
-        yPos += 10;
+        doc.text(dateRange, leftMargin, yPos);
+        yPos += 6;
     }
     if (filters.locationFilter) {
-        doc.text(`Location Filter: ${filters.locationFilter}`, 20, yPos);
-        yPos += 10;
+        doc.text(`Location Filter: ${filters.locationFilter}`, leftMargin, yPos);
+        yPos += 6;
     }
     if (filters.typeFilter) {
-        doc.text(`Crab Type Filter: ${filters.typeFilter}`, 20, yPos);  
-        yPos += 10;
+        doc.text(`Crab Type Filter: ${filters.typeFilter}`, leftMargin, yPos);  
+        yPos += 6;
     }
 
-    // Table headers with adjusted column widths
+    // Table headers with adjusted column widths for landscape
     const headers = ['Box No.', 'Type', 'Status', 'Location', 'Date In', 'Date Sold', 'Origin Wt.', 'Current Wt.', 'Gender', 'Class'];
-    const colWidths = [20, 15, 20, 25, 25, 25, 18, 18, 15, 15]; // Adjusted widths for better fit
-    let xPos = 20;
+    const colWidths = [18, 13, 18, 22, 22, 22, 16, 16, 14, 14]; // Adjusted for landscape
+    let xPos = leftMargin;
 
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     headers.forEach((header, index) => {
         doc.text(header, xPos, yPos);
@@ -1630,13 +1633,13 @@ window.downloadReportPDF = async () => {
     });
 
     doc.setFont('helvetica', 'normal');
-    yPos += 8;
+    yPos += 6;
 
     // Table data with adjusted column positions
     data.forEach((crab, index) => {
-        if (yPos > 270) { // New page if needed
+        if (yPos > 185) { // New page if needed (landscape height ~190mm)
             doc.addPage();
-            yPos = 30;
+            yPos = 20;
         }
 
         const dateSold = crab.soldAt ? new Date(crab.soldAt).toLocaleDateString() : '—';
@@ -1655,18 +1658,18 @@ window.downloadReportPDF = async () => {
             crab.crabClass ? 'Class ' + crab.crabClass : '—'
         ];
 
-        xPos = 20;
+        xPos = leftMargin;
         rowData.forEach((cell, cellIndex) => {
             // Truncate long text if needed
             let cellText = String(cell);
-            if (cellText.length > 12 && colWidths[cellIndex] < 20) {
+            if (cellText.length > 12 && colWidths[cellIndex] < 18) {
                 cellText = cellText.substring(0, 10) + '...';
             }
-            doc.text(cellText, xPos, yPos);
+            doc.text(cellText, xPos, yPos, { maxWidth: colWidths[cellIndex] - 1 });
             xPos += colWidths[cellIndex];
         });
 
-        yPos += 6;
+        yPos += 5;
     });
 
     // Save the PDF
