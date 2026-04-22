@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crab Monitoring System - Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f7fa; color: #333; }
+
+        /* ── HEADER ── */
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem 1.25rem; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 500; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto; gap: 1rem; flex-wrap: wrap; }
+        .logo-section { display: flex; align-items: center; gap: 0.75rem; }
+        .logo { font-size: 1.75rem; }
+        .system-title { font-size: 1.1rem; font-weight: 600; }
+        .system-subtitle { font-size: 0.8rem; opacity: 0.9; }
+
+        .user-section { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+        .user-info { text-align: right; }
+        .user-name { font-weight: 600; font-size: 0.9rem; }
+        .user-role { font-size: 0.8rem; opacity: 0.9; }
+        .logout-btn { background: rgba(255,255,255,0.2); color: white; border: 2px solid rgba(255,255,255,0.3); padding: 0.45rem 0.85rem; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; font-weight: 500; font-size: 0.85rem; min-height: 44px; }
+        .logout-btn:hover { background: rgba(255,255,255,0.3); }
+        .nav-btn { background: rgba(255,255,255,0.2); color: white; border: 2px solid rgba(255,255,255,0.3); padding: 0.45rem 0.85rem; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; font-weight: 500; text-decoration: none; font-size: 0.85rem; display: inline-flex; align-items: center; min-height: 44px; }
+        .nav-btn:hover { background: rgba(255,255,255,0.3); }
+        .nav-btn.active { background: rgba(255,255,255,0.35); border-color: rgba(255,255,255,0.6); }
+
+        .firebase-status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; background: rgba(255,255,255,0.15); padding: 0.3rem 0.75rem; border-radius: 20px; white-space: nowrap; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; transition: background 0.3s; flex-shrink: 0; }
+        .status-dot.connected { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+        .status-dot.disconnected { background: #f87171; }
+        .status-dot.connecting { background: #facc15; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* ── MAIN ── */
+        .main-container { max-width: 1400px; margin: 1.5rem auto; padding: 0 1rem; }
+
+        .stats-section-label { font-size: 0.78rem; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 0.6rem; margin-top: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .stats-section-label:first-child { margin-top: 0; }
+        .stats-section-label::after { content: ''; flex: 1; height: 1px; background: #e2e5eb; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 0.5rem; }
+        .stats-grid-age { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+
+        .stat-card { background: white; padding: 1.25rem 1.25rem 2.5rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer; position: relative; overflow: hidden; border-top: 3px solid #e2e5eb; }
+        .stat-card::after { content: '👁  View Details'; position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 0.45rem; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.3px; transform: translateY(100%); transition: transform 0.25s ease; }
+        .stat-card:hover::after { transform: translateY(0); }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+        .stat-card.card-healthy  { border-top-color: #28a745; }
+        .stat-card.card-dead     { border-top-color: #dc3545; }
+        .stat-card.card-sell     { border-top-color: #ffc107; }
+        .stat-card.card-sold     { border-top-color: #adb5bd; }
+        .stat-card.card-healthy::after { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); }
+        .stat-card.card-dead::after    { background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%); }
+        .stat-card.card-sell::after    { background: linear-gradient(135deg, #e67e22 0%, #ffc107 100%); }
+        .stat-card.card-sold::after    { background: linear-gradient(135deg, #868e96 0%, #adb5bd 100%); }
+        .stat-card.age-days::after  { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .stat-card.age-week1::after { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .stat-card.age-week2::after { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .stat-card.age-week3plus::after { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .stat-card.age-week4::after { background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); }
+
+        .stat-card.age-days, .stat-card.age-week1, .stat-card.age-week2,
+        .stat-card.age-week3plus, .stat-card.age-week4 { padding: 0.85rem 1rem 2.2rem; }
+        .stat-card.age-days  { border-top: 3px solid #f5576c; }
+        .stat-card.age-week1 { border-top: 3px solid #4facfe; }
+        .stat-card.age-week2 { border-top: 3px solid #43e97b; }
+        .stat-card.age-week3plus { border-top: 3px solid #fa709a; }
+        .stat-card.age-week4 { border-top: 3px solid #a78bfa; }
+        .stat-card.age-days .stat-icon, .stat-card.age-week1 .stat-icon,
+        .stat-card.age-week2 .stat-icon, .stat-card.age-week3plus .stat-icon,
+        .stat-card.age-week4 .stat-icon { font-size: 1.5rem; margin-bottom: 0.4rem; }
+        .stat-card.age-days .stat-title, .stat-card.age-week1 .stat-title,
+        .stat-card.age-week2 .stat-title, .stat-card.age-week3plus .stat-title,
+        .stat-card.age-week4 .stat-title { font-size: 0.72rem; margin-bottom: 0.25rem; }
+        .stat-card.age-days .stat-value, .stat-card.age-week1 .stat-value,
+        .stat-card.age-week2 .stat-value, .stat-card.age-week3plus .stat-value,
+        .stat-card.age-week4 .stat-value { font-size: 1.5rem; margin-bottom: 0.25rem; }
+        .stat-card.age-days .stat-change, .stat-card.age-week1 .stat-change,
+        .stat-card.age-week2 .stat-change, .stat-card.age-week3plus .stat-change,
+        .stat-card.age-week4 .stat-change { font-size: 0.72rem; }
+
+        .stat-icon { font-size: 2rem; margin-bottom: 0.75rem; }
+        .stat-title { color: #666; font-size: 0.85rem; margin-bottom: 0.4rem; }
+        .stat-value { font-size: 1.75rem; font-weight: 700; color: #333; margin-bottom: 0.4rem; }
+        .stat-change { font-size: 0.8rem; font-weight: 500; }
+        .stat-change.positive { color: #28a745; }
+        .stat-change.negative { color: #dc3545; }
+        .stat-change.neutral  { color: #6c757d; }
+        .stat-change.age-info { color: #667eea; }
+
+        .age-badge { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 20px; margin-left: 6px; vertical-align: middle; }
+        .age-badge.days  { background: #fde8ea; color: #c0392b; }
+        .age-badge.week1 { background: #e3f4fd; color: #0277bd; }
+        .age-badge.week2 { background: #e8faf0; color: #1b5e20; }
+        .age-badge.week3 { background: #fff8e1; color: #f57f17; }
+        .age-badge.week4plus { background: #f3e5f5; color: #6a1b9a; }
+
+        /* ── CRAB SECTION ── */
+        .crab-data-section { margin-bottom: 2rem; }
+        .crab-data-header { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; margin-bottom: 1rem; }
+        .section-title { font-size: 1.2rem; font-weight: 700; color: #333; }
+        .add-crab-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.3s ease; display: flex; align-items: center; gap: 0.4rem; box-shadow: 0 2px 8px rgba(102,126,234,0.3); min-height: 44px; }
+        .add-crab-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102,126,234,0.4); }
+
+        .crab-grid { display: flex; flex-wrap: nowrap; gap: 1rem; overflow-x: auto; padding-bottom: 0.75rem; -webkit-overflow-scrolling: touch; }
+        .crab-grid .crab-card { flex: 0 0 160px; min-width: 160px; }
+
+        /* ── RACK GROUP (ALL BOXES MODAL) ── */
+        .rack-group { margin-bottom: 1.5rem; }
+        .rack-group:last-child { margin-bottom: 0; }
+        .rack-group-label { font-size: 0.72rem; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.5rem; }
+        .rack-group-label::after { content: ''; flex: 1; height: 1px; background: #e2e5eb; }
+        .rack-group-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; }
+
+        /* ── CRAB CARD ── */
+        .crab-card { background: white; border-radius: 12px; padding: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.08); cursor: default; transition: transform 0.2s, box-shadow 0.2s; }
+        .crab-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+        .crab-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+        .crab-id { font-weight: 700; font-size: 0.95rem; }
+        .crab-status { display: inline-block; padding: 0.25rem 0.65rem; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+        .status-healthy { background: #d4edda; color: #155724; }
+        .status-readytosell { background: #fff3cd; color: #856404; }
+        .status-dead { background: #f8d7da; color: #721c24; }
+        .status-sold { background: #e2e3e5; color: #495057; }
+
+        .crab-age-display { font-size: 0.72rem; font-weight: 700; margin-top: 0.35rem; padding: 0.2rem 0.55rem; border-radius: 20px; display: inline-block; }
+        .crab-age-display.days  { background: #fde8ea; color: #c0392b; }
+        .crab-age-display.week1 { background: #e3f4fd; color: #0277bd; }
+        .crab-age-display.week2 { background: #e8faf0; color: #1b5e20; }
+        .crab-age-display.week3 { background: #fff8e1; color: #f57f17; }
+        .crab-age-display.week4plus { background: #f3e5f5; color: #6a1b9a; }
+
+        .view-more-wrap { display: flex; justify-content: center; margin-top: 1rem; }
+        .view-more-btn { background: white; color: #667eea; border: 2px solid #667eea; padding: 0.55rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.25s; display: flex; align-items: center; gap: 0.5rem; min-height: 44px; }
+        .view-more-btn:hover { background: #667eea; color: white; }
+
+        /* ── ALL BOXES MODAL ── */
+        .allboxes-modal-content { background: #fefefe; margin: 3% auto; padding: 0; border-radius: 16px; width: 92%; max-width: 900px; max-height: 88vh; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: slideUp 0.3s ease; display: flex; flex-direction: column; }
+        .allboxes-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .allboxes-header .modal-title { font-size: 1.1rem; font-weight: 700; }
+        .allboxes-header .close { color: rgba(255,255,255,0.75); font-size: 26px; cursor: pointer; line-height: 1; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
+        .allboxes-header .close:hover { color: white; }
+        .allboxes-search { padding: 0.85rem 1.25rem; border-bottom: 1px solid #eee; background: #fafafa; flex-shrink: 0; }
+        .allboxes-search input { width: 100%; padding: 0.6rem 1rem; border: 2px solid #e1e1e1; border-radius: 8px; font-size: 16px; }
+        .allboxes-search input:focus { outline: none; border-color: #667eea; }
+        .allboxes-body { padding: 1.25rem; overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+        .allboxes-grid { display: block; }
+
+        /* ── CONTENT GRID ── */
+        .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); overflow: hidden; }
+        .card-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem 1.5rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; }
+        .card-content { padding: 1.25rem; }
+        .recent-observations { max-height: 400px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .observation-item { display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 0; border-bottom: 1px solid #eee; gap: 0.75rem; }
+        .observation-item:last-child { border-bottom: none; }
+        .observation-info { flex: 1; min-width: 0; }
+        .observation-species { font-weight: 600; margin-bottom: 0.25rem; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .observation-details { font-size: 0.8rem; color: #666; }
+        .observation-status { padding: 0.25rem 0.65rem; border-radius: 20px; font-size: 0.78rem; font-weight: 500; flex-shrink: 0; }
+
+        /* ── TOP ORIGINS WIDGET ── */
+        .origin-item { margin-bottom: 1rem; }
+        .origin-item:last-child { margin-bottom: 0; }
+        .origin-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; }
+        .origin-name { font-size: 0.88rem; font-weight: 600; color: #333; display: flex; align-items: center; gap: 0.4rem; }
+        .origin-meta { display: flex; align-items: center; gap: 0.5rem; }
+        .origin-count { font-size: 0.8rem; font-weight: 700; color: #667eea; }
+        .origin-pct { font-size: 0.72rem; color: #aaa; }
+        .origin-bar-wrap { background: #f0f0f5; border-radius: 6px; height: 7px; overflow: hidden; }
+        .origin-bar-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease; }
+        .origin-types { margin-top: 0.3rem; display: flex; gap: 0.3rem; flex-wrap: wrap; }
+        .origin-type-tag { font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 8px; background: #f0f4ff; color: #667eea; }
+
+        /* ── TOAST ── */
+        .toast { position: fixed; bottom: 1.5rem; right: 1rem; left: 1rem; background: #333; color: white; padding: 0.85rem 1.25rem; border-radius: 8px; font-size: 0.9rem; z-index: 9999; transform: translateY(120px); opacity: 0; transition: all 0.3s ease; max-width: 340px; margin: 0 auto; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: #28a745; }
+        .toast.error { background: #dc3545; }
+
+        /* ── MODALS ── */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.45); animation: bgFadeIn 0.2s ease; overflow-y: auto; }
+        @keyframes bgFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-content { background: #fefefe; margin: 3% auto; padding: 1.5rem; border-radius: 12px; width: 92%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3); animation: slideUp 0.3s ease; -webkit-overflow-scrolling: touch; }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #eee; }
+        .modal-title { font-size: 1.3rem; font-weight: 600; color: #333; }
+        .close { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; transition: color 0.3s; line-height: 1; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
+        .close:hover { color: #000; }
+
+        /* ── STAT DETAIL MODAL ── */
+        .detail-modal-content { background: #fefefe; margin: 3% auto; padding: 0; border-radius: 16px; width: 92%; max-width: 720px; max-height: 88vh; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: slideUp 0.3s ease; display: flex; flex-direction: column; }
+        .detail-modal-header { padding: 1.25rem 1.5rem; color: white; display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; }
+        .detail-modal-header.total     { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .detail-modal-header.healthy   { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); }
+        .detail-modal-header.mortality { background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%); }
+        .detail-modal-header.sell      { background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%); }
+        .detail-modal-header.sold      { background: linear-gradient(135deg, #495057 0%, #6c757d 100%); }
+        .detail-modal-header.age-days  { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .detail-modal-header.age-week1 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .detail-modal-header.age-week2 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .detail-modal-header.age-week3plus { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .detail-modal-header.age-week4 { background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); }
+        .detail-modal-header .modal-title { font-size: 1.2rem; font-weight: 700; }
+        .detail-modal-header .modal-subtitle { font-size: 0.82rem; opacity: 0.85; margin-top: 0.3rem; }
+        .detail-modal-header .close { color: rgba(255,255,255,0.7); font-size: 26px; }
+        .detail-modal-header .close:hover { color: white; }
+        .detail-modal-search { padding: 0.9rem 1.25rem; border-bottom: 1px solid #eee; background: #fafafa; flex-shrink: 0; }
+        .detail-modal-search input { width: 100%; padding: 0.6rem 1rem; border: 2px solid #e1e1e1; border-radius: 8px; font-size: 16px; }
+        .detail-modal-search input:focus { outline: none; border-color: #667eea; }
+        .detail-modal-body { padding: 1rem 1.25rem 1.5rem; overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+
+        /* ── CRAB DETAIL ITEMS ── */
+        .crab-detail-item { background: white; border: 1px solid #e8e8e8; border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem; transition: box-shadow 0.2s, transform 0.15s; border-left: 5px solid #667eea; }
+        .crab-detail-item:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); transform: translateX(3px); }
+        .crab-detail-item.healthy    { border-left-color: #28a745; }
+        .crab-detail-item.dead       { border-left-color: #dc3545; }
+        .crab-detail-item.sell       { border-left-color: #e67e22; }
+        .crab-detail-item.sold       { border-left-color: #6c757d; }
+        .crab-detail-item.total      { border-left-color: #667eea; }
+        .crab-detail-item.age-days   { border-left-color: #f5576c; }
+        .crab-detail-item.age-week1  { border-left-color: #4facfe; }
+        .crab-detail-item.age-week2  { border-left-color: #43e97b; }
+        .crab-detail-item.age-week3plus { border-left-color: #fa709a; }
+        .crab-detail-item.age-week4 { border-left-color: #a78bfa; }
+
+        .crab-detail-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.9rem; gap: 0.5rem; }
+        .crab-detail-box { font-size: 1.1rem; font-weight: 700; color: #222; }
+        .crab-detail-type { font-size: 0.8rem; color: #888; margin-top: 0.2rem; }
+        .crab-detail-badge { padding: 0.25rem 0.65rem; border-radius: 20px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; flex-shrink: 0; }
+        .badge-healthy { background: #d4edda; color: #155724; }
+        .badge-dead    { background: #f8d7da; color: #721c24; }
+        .badge-sell    { background: #fff3cd; color: #856404; }
+        .badge-sold    { background: #e2e3e5; color: #495057; }
+        .badge-unknown { background: #e2e3e5; color: #495057; }
+        .crab-detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+        .crab-detail-field { background: #f8f9fa; border-radius: 8px; padding: 0.55rem 0.75rem; }
+        .crab-detail-field-label { font-size: 0.68rem; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.2rem; }
+        .crab-detail-field-value { font-size: 0.82rem; font-weight: 600; color: #333; }
+        .crab-detail-notes { margin-top: 0.75rem; padding: 0.6rem 0.75rem; background: #fffbf0; border-radius: 8px; border-left: 3px solid #ffc107; font-size: 0.8rem; color: #666; }
+        .crab-detail-field.age-highlight { background: #f0f4ff; border: 1px solid #c7d2fe; }
+        .crab-detail-field.age-highlight .crab-detail-field-value { color: #3730a3; }
+        .crab-detail-field.sold-highlight { background: #f0fff4; border: 1px solid #b7dfc4; }
+        .crab-detail-field.sold-highlight .crab-detail-field-label { color: #3d8b6e; }
+        .crab-detail-field.sold-highlight .crab-detail-field-value { color: #155724; }
+        .crab-detail-field.dead-highlight { background: #fff5f5; border: 1px solid #f5c6cb; }
+        .crab-detail-field.dead-highlight .crab-detail-field-label { color: #a71d2a; }
+        .crab-detail-field.dead-highlight .crab-detail-field-value { color: #721c24; }
+
+        /* ── FORM ── */
+        .data-form { display: grid; gap: 1rem; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .form-group { margin-bottom: 0.5rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: #333; font-weight: 500; font-size: 0.9rem; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.75rem; border: 2px solid #e1e1e1; border-radius: 8px; font-size: 16px; transition: border-color 0.3s; font-family: inherit; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #667eea; }
+        .form-group textarea { resize: vertical; min-height: 90px; }
+
+        .age-preview { margin-top: 0.4rem; font-size: 0.82rem; color: #667eea; font-weight: 600; min-height: 1.2em; }
+        .form-section { padding: 1.25rem; margin-bottom: 1.25rem; border: 1px solid #e1e1e1; border-radius: 12px; background: #fafafa; }
+        .form-section h3 { margin: 0 0 1rem 0; padding-bottom: 0.75rem; border-bottom: 2px solid #e1e1e1; font-weight: 600; font-size: 1rem; }
+        .form-actions { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; flex-wrap: wrap; }
+        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.3s; min-height: 44px; font-family: inherit; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102,126,234,0.3); }
+        .btn-secondary { background: #f8f9fa; color: #333; border: 2px solid #e1e1e1; }
+        .btn-secondary:hover { background: #e9ecef; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-radius: 50%; border-top-color: white; animation: spin 0.8s linear infinite; margin-right: 0.5rem; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── BOX DROPDOWN ── */
+        .boxno-wrap { position: relative; }
+        .boxno-dropdown { position: absolute; top: calc(100% + 3px); left: 0; right: 0; background: white; border: 2px solid #667eea; border-radius: 10px; max-height: 200px; overflow-y: auto; z-index: 3000; box-shadow: 0 8px 24px rgba(0,0,0,0.14); display: none; -webkit-overflow-scrolling: touch; }
+        .boxno-dropdown.open { display: block; }
+        .boxno-section-label { padding: 0.4rem 0.85rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #999; background: #f8f9fa; border-bottom: 1px solid #eee; position: sticky; top: 0; }
+        .boxno-option { padding: 0.65rem 0.85rem; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f5f5f5; transition: background 0.12s; min-height: 44px; }
+        .boxno-option:last-child { border-bottom: none; }
+        .boxno-option:hover { background: #f0f0ff; }
+        .box-tag { font-size: 0.68rem; padding: 0.15rem 0.55rem; border-radius: 10px; font-weight: 700; }
+        .tag-empty  { background: #e8f5e9; color: #2e7d32; }
+        .tag-occupied { background: #fdecea; color: #c62828; }
+
+        .empty-state { text-align: center; color: #999; padding: 2rem; font-size: 0.9rem; }
+
+        /* ══════════════════════════════
+           MOBILE RESPONSIVE FIXES
+        ══════════════════════════════ */
+        @media (max-width: 768px) {
+            .header { padding: 0.85rem 1rem; }
+            .header-content { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+            .logo-section { justify-content: flex-start; }
+            .system-title { font-size: 1rem; }
+            .user-section { justify-content: space-between; align-items: center; flex-wrap: nowrap; }
+            .user-info { text-align: left; flex: 1; }
+            .main-container { padding: 0 0.75rem; margin: 1rem auto; }
+            .stats-section-label { font-size: 0.72rem; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+            .stats-grid-age { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+            .stat-card { padding: 1rem 1rem 2.2rem; }
+            .stat-icon { font-size: 1.6rem; margin-bottom: 0.5rem; }
+            .stat-title { font-size: 0.75rem; }
+            .stat-value { font-size: 1.4rem; }
+            .stat-change { font-size: 0.72rem; }
+            .stat-card.age-days, .stat-card.age-week1, .stat-card.age-week2,
+            .stat-card.age-week3plus, .stat-card.age-week4 { padding: 0.75rem 0.75rem 2rem; }
+            .crab-data-header { flex-direction: row; align-items: center; }
+            .section-title { font-size: 1.05rem; }
+            .add-crab-btn { padding: 0.5rem 0.9rem; font-size: 0.82rem; }
+            .crab-grid .crab-card { flex: 0 0 145px; min-width: 145px; }
+            .crab-id { font-size: 0.88rem; }
+            .content-grid { grid-template-columns: 1fr; gap: 1rem; }
+            .modal-content { width: 96%; margin: 2% auto; padding: 1.25rem; }
+            .detail-modal-content { width: 96%; margin: 2% auto; max-height: 92vh; }
+            .allboxes-modal-content { width: 96%; margin: 2% auto; max-height: 92vh; }
+            .detail-modal-header { padding: 1rem 1.25rem; }
+            .detail-modal-header .modal-title { font-size: 1.05rem; }
+            .allboxes-body { padding: 1rem; }
+            .detail-modal-body { padding: 0.75rem 1rem 1.25rem; }
+            .crab-detail-grid { grid-template-columns: repeat(2, 1fr); }
+            .crab-detail-field-value { font-size: 0.78rem; }
+            .form-row { grid-template-columns: 1fr; gap: 0; }
+            .form-section { padding: 1rem; }
+            .form-section h3 { font-size: 0.95rem; }
+            .form-actions { justify-content: stretch; }
+            .form-actions .btn { flex: 1; text-align: center; }
+            .rack-group-cards { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.75rem; }
+            .observation-species { font-size: 0.82rem; }
+            .modal-title { font-size: 1.1rem; }
+        }
+
+        @media (max-width: 420px) {
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .stats-grid-age { grid-template-columns: 1fr 1fr; }
+            .stat-value { font-size: 1.25rem; }
+            .crab-grid .crab-card { flex: 0 0 135px; min-width: 135px; }
+            .user-info { display: none; }
+        }
+
+        #connStatusPill { margin-left: auto; }
+
+        /* ── HAMBURGER MENU (mobile only) ── */
+        .hamburger-btn { display: none; }
+        .mobile-drawer-overlay { display: none; }
+        .mobile-drawer { display: none; }
+
+        @media (max-width: 768px) {
+            .hamburger-btn {
+                display: flex; flex-direction: column; justify-content: center; align-items: center;
+                gap: 5px; width: 44px; height: 44px; background: rgba(255,255,255,0.15);
+                border: 1.5px solid rgba(255,255,255,0.3); border-radius: 10px; cursor: pointer;
+                flex-shrink: 0; transition: background 0.2s; -webkit-tap-highlight-color: transparent;
+            }
+            .hamburger-btn:active { background: rgba(255,255,255,0.28); }
+            .hamburger-btn span { display: block; width: 20px; height: 2px; background: #fff; border-radius: 2px; transition: transform 0.25s, opacity 0.25s; }
+            .hamburger-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+            .hamburger-btn.open span:nth-child(2) { opacity: 0; }
+            .hamburger-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+            .nav-btn { display: none; }
+            .user-section { display: none; }
+            #connStatusPill { display: flex; margin-left: auto; }
+            .mobile-drawer-overlay { display: block; position: fixed; inset: 0; z-index: 700; background: rgba(0,0,0,0.45); opacity: 0; pointer-events: none; transition: opacity 0.28s; }
+            .mobile-drawer-overlay.open { opacity: 1; pointer-events: all; }
+            .mobile-drawer { display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; width: 240px; z-index: 800; background: #fff; box-shadow: 4px 0 24px rgba(0,0,0,0.18); transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); overflow-y: auto; }
+            .mobile-drawer.open { transform: translateX(0); }
+            .mobile-drawer-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.25rem 1.25rem 1rem; color: #fff; }
+            .mobile-drawer-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.75; margin-bottom: 0.25rem; }
+            .mobile-drawer-user { font-size: 1rem; font-weight: 700; }
+            .mobile-drawer-role { font-size: 0.78rem; opacity: 0.75; margin-top: 0.1rem; }
+            .mobile-drawer-nav { flex: 1; padding: 0.75rem 0; }
+            .mobile-drawer-link { display: flex; align-items: center; gap: 0.85rem; padding: 0.9rem 1.25rem; text-decoration: none; color: #444; font-size: 0.95rem; font-weight: 500; transition: background 0.15s, color 0.15s; border-left: 3px solid transparent; -webkit-tap-highlight-color: transparent; }
+            .mobile-drawer-link:active { background: #f0f0ff; }
+            .mobile-drawer-link.active { background: #f0f0ff; color: #667eea; border-left-color: #667eea; font-weight: 700; }
+            .mobile-drawer-link-icon { font-size: 1.1rem; width: 24px; text-align: center; }
+            .mobile-drawer-divider { height: 1px; background: #eee; margin: 0.5rem 1.25rem; }
+        }
+    </style>
+</head>
+<body>
+
+<script>
+(function () {
+    var s = sessionStorage.getItem('crabMonitoringSession')
+         || localStorage.getItem('crabMonitoringSession');
+    if (!s) { window.location.replace('index.html'); return; }
+    try {
+        var d = JSON.parse(s);
+        var hrs = (Date.now() - new Date(d.loginTime)) / (1000 * 60 * 60);
+        if (hrs >= 24) {
+            sessionStorage.removeItem('crabMonitoringSession');
+            localStorage.removeItem('crabMonitoringSession');
+            window.location.replace('index.html');
+            return;
+        }
+        if (!sessionStorage.getItem('crabMonitoringSession'))
+            sessionStorage.setItem('crabMonitoringSession', s);
+    } catch (e) { window.location.replace('index.html'); }
+})();
+</script>
+
+<header class="header">
+    <div class="header-content">
+        <div class="logo-section">
+            <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">
+                <span></span><span></span><span></span>
+            </button>
+            <div class="logo">🦀</div>
+            <div>
+                <h1 class="system-title">Crab Monitoring System</h1>
+                <p class="system-subtitle">Ingore-Baldoza Fisherfolks Association</p>
+            </div>
+        </div>
+        <div class="firebase-status" id="connStatusPill">
+            <div class="status-dot connecting" id="statusDot"></div>
+            <span id="statusLabel">Connecting...</span>
+        </div>
+        <div class="user-section">
+            <a href="dashboard.html" class="nav-btn active">🏠 Dashboard</a>
+            <a href="history.html"   class="nav-btn">📋 History</a>
+            <div class="user-info">
+                <div class="user-name" id="userName">Loading...</div>
+                <div class="user-role" id="userRole">Loading...</div>
+            </div>
+            <button class="logout-btn" id="logoutBtn">Logout</button>
+        </div>
+    </div>
+</header>
+
+<main class="main-container">
+
+    <div class="stats-section-label">📊 Overview</div>
+    <div class="stats-grid" style="margin-bottom:1.5rem;">
+        <div class="stat-card" onclick="showStatModal('total')">
+            <div class="stat-icon">🦀</div>
+            <div class="stat-title">Total Crabs Monitored</div>
+            <div class="stat-value" id="totalCrabs">—</div>
+            <div class="stat-change positive" id="totalCrabsChange">Loading...</div>
+        </div>
+        <div class="stat-card card-healthy" onclick="showStatModal('healthy')">
+            <div class="stat-icon">💚</div>
+            <div class="stat-title">Healthy Crabs</div>
+            <div class="stat-value" id="healthyCrabs">—</div>
+            <div class="stat-change positive" id="healthyChange">Loading...</div>
+        </div>
+        <div class="stat-card card-dead" onclick="showStatModal('mortality')">
+            <div class="stat-icon">💀</div>
+            <div class="stat-title">Mortality</div>
+            <div class="stat-value" id="mortality">—</div>
+            <div class="stat-change" id="healthScoreChange">Loading...</div>
+        </div>
+        <div class="stat-card card-sell" onclick="showStatModal('sell')">
+            <div class="stat-icon">💰</div>
+            <div class="stat-title">Ready to Sell</div>
+            <div class="stat-value" id="alertCount">—</div>
+            <div class="stat-change" id="alertChange">Loading...</div>
+        </div>
+        <div class="stat-card card-sold" onclick="showStatModal('sold')">
+            <div class="stat-icon">🏷️</div>
+            <div class="stat-title">Sold</div>
+            <div class="stat-value" id="soldCount">—</div>
+            <div class="stat-change neutral" id="soldChange">Loading...</div>
+        </div>
+    </div>
+
+    <div class="stats-section-label">📅 Age Groups</div>
+    <div class="stats-grid-age">
+        <div class="stat-card age-days" onclick="showStatModal('age-days')">
+            <div class="stat-icon">🦀</div>
+            <div class="stat-title">Day 1–6 (New Arrivals)</div>
+            <div class="stat-value" id="ageDaysCount">—</div>
+            <div class="stat-change age-info" id="ageDaysChange">Loading...</div>
+        </div>
+        <div class="stat-card age-week1" onclick="showStatModal('age-week1')">
+            <div class="stat-icon">📅</div>
+            <div class="stat-title">Week 1 (Days 7–13)</div>
+            <div class="stat-value" id="ageWeek1Count">—</div>
+            <div class="stat-change age-info" id="ageWeek1Change">Loading...</div>
+        </div>
+        <div class="stat-card age-week2" onclick="showStatModal('age-week2')">
+            <div class="stat-icon">📆</div>
+            <div class="stat-title">Week 2 (Days 14–20)</div>
+            <div class="stat-value" id="ageWeek2Count">—</div>
+            <div class="stat-change age-info" id="ageWeek2Change">Loading...</div>
+        </div>
+        <div class="stat-card age-week3plus" onclick="showStatModal('age-week3plus')">
+            <div class="stat-icon">🗓️</div>
+            <div class="stat-title">Week 3 (Days 21–27)</div>
+            <div class="stat-value" id="ageWeek3plusCount">—</div>
+            <div class="stat-change age-info" id="ageWeek3plusChange">Loading...</div>
+        </div>
+        <div class="stat-card age-week4" onclick="showStatModal('age-week4')">
+            <div class="stat-icon">🗓️</div>
+            <div class="stat-title">Week 4+ (Day 28+)</div>
+            <div class="stat-value" id="ageWeek4Count">—</div>
+            <div class="stat-change age-info" id="ageWeek4Change">Loading...</div>
+        </div>
+    </div>
+
+    <div class="crab-data-section">
+        <div class="crab-data-header">
+            <h2 class="section-title">🦀 Crab Data</h2>
+            <button class="add-crab-btn" onclick="openAddCrabModal()"><span style="color:#ff69b4;font-size:1.8rem;font-weight:900;line-height:1;">+</span> Add Crab</button>
+        </div>
+        <div class="crab-grid" id="crabGrid"></div>
+        <div class="view-more-wrap" id="viewMoreWrap" style="display:none;">
+            <button class="view-more-btn" onclick="openAllBoxesModal()">
+                📦 View All Boxes <span id="viewMoreCount" style="background:rgba(102,126,234,0.12);padding:0.1rem 0.5rem;border-radius:10px;font-size:0.8rem;"></span>
+            </button>
+        </div>
+    </div>
+
+    <div class="content-grid">
+        <div class="card">
+            <div class="card-header">
+                <span>Recent Observations</span>
+                <span style="font-size:0.8rem;opacity:0.85;" id="lastUpdated">Live</span>
+            </div>
+            <div class="card-content">
+                <div class="recent-observations" id="observationsList">
+                    <div class="empty-state">Loading observations...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span>📍 Top Origins</span>
+                <span style="font-size:0.8rem;opacity:0.85;" id="originsTotal">Active crabs</span>
+            </div>
+            <div class="card-content" id="topOriginsList" style="max-height:400px;overflow-y:auto;">
+                <div class="empty-state">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<!-- All Boxes Modal -->
+<div id="allBoxesModal" class="modal">
+    <div class="allboxes-modal-content">
+        <div class="allboxes-header">
+            <div class="modal-title">📦 All Boxes &nbsp;<span id="allBoxesCount" style="font-size:0.82rem;opacity:0.85;font-weight:400;"></span></div>
+            <span class="close" onclick="closeAllBoxesModal()">&times;</span>
+        </div>
+        <div class="allboxes-search">
+            <input type="text" id="allBoxesSearch" placeholder="🔍 Search by box no., type, status, location..." oninput="filterAllBoxes()">
+        </div>
+        <div class="allboxes-body">
+            <div class="allboxes-grid" id="allBoxesGrid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Stat Detail Modal -->
+<div id="statDetailModal" class="modal">
+    <div class="detail-modal-content">
+        <div class="detail-modal-header total" id="statDetailHeader">
+            <div>
+                <div class="modal-title" id="statDetailTitle">All Crabs</div>
+                <div class="modal-subtitle" id="statDetailSubtitle">Loading...</div>
+            </div>
+            <span class="close" onclick="closeStatDetailModal()">&times;</span>
+        </div>
+        <div class="detail-modal-search">
+            <input type="text" id="statDetailSearch" placeholder="🔍 Search by Box No., Type, Location, Gender..." oninput="filterStatDetail()">
+        </div>
+        <div class="detail-modal-body" id="statDetailBody">
+            <div class="empty-state">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="crabModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalTitle">Crab Data Entry</h2>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+        <form id="crabDataForm" class="data-form">
+            <div class="form-section">
+                <h3>📋 Basic Information</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dateIn">Date In</label>
+                        <input type="date" id="dateIn" required oninput="updateAgePreview()" max="">
+                        <div class="age-preview" id="agePreview"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="boxNo">Box No.</label>
+                        <div class="boxno-wrap">
+                            <input type="text" id="boxNo" placeholder="Type or pick an empty box…" required autocomplete="off"
+                                oninput="onBoxNoInput()" onfocus="onBoxNoInput()" onblur="delayCloseDropdown()">
+                            <div class="boxno-dropdown" id="boxNoDropdown"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label for="crabOrigin">Crab Origin</label><input type="text" id="crabOrigin" placeholder="e.g. Farm" required></div>
+                    <div class="form-group"><label for="gender">Gender</label>
+                        <select id="gender" required><option value="">Select Gender</option><option value="male">Male</option><option value="female">Female</option><option value="unknown">Unknown</option></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label for="crabType">Type</label>
+                        <select id="crabType" required><option value="">Select Type</option><option value="SS">(SS) King Crab (Bulik)</option><option value="SO">(SO) Orange/Red Mud Crab (Pulahan)</option><option value="ST">(ST) Purple Mud Crab (Native)</option></select>
+                    </div>
+                    <div class="form-group"><label for="crabClass">Class</label>
+                        <select id="crabClass" required><option value="">Select Class</option><option value="A">Class A</option><option value="B">Class B</option><option value="C">Class C</option></select>
+                    </div>
+                </div>
+            </div>
+            <div class="form-section">
+                <h3>⚖️ Weight Information</h3>
+                <div class="form-row">
+                    <div class="form-group"><label for="originWeight">Origin Weight (g)</label><input type="number" id="originWeight" step="0.1" min="0" required></div>
+                    <div class="form-group"><label for="currentWeight">Current Weight (g)</label><input type="number" id="currentWeight" step="0.1" min="0" required></div>
+                </div>
+            </div>
+            <div class="form-section">
+                <h3>🏥 Health Status</h3>
+                <div class="form-row">
+                    <div class="form-group"><label for="weeklyStatus">Weekly Status</label>
+                        <select id="weeklyStatus" required><option value="">Select Status</option><option value="healthy">Healthy</option><option value="Dead">Dead</option><option value="Ready to Sell">Ready to Sell</option><option value="Sold">Sold</option></select>
+                    </div>
+                    <div class="form-group"><label for="location">Location / Site</label><input type="text" id="location" placeholder="e.g. Site A-3" required></div>
+                </div>
+            </div>
+            <div class="form-section">
+                <h3>📝 Additional Notes</h3>
+                <div class="form-group"><label for="notes">Observation Notes</label><textarea id="notes" placeholder="Enter any additional observations, behaviors, or concerns..."></textarea></div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="saveBtn">💾 Save Data</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
+    import { getDatabase, ref, set, push, onValue, get, serverTimestamp }
+        from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCL2YkjBwcQR642R9l0AXuX5ayczH2q1EM",
+        authDomain: "crabmonitoringsystem-ab2ea.firebaseapp.com",
+        databaseURL: "https://crabmonitoringsystem-ab2ea-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "crabmonitoringsystem-ab2ea",
+        storageBucket: "crabmonitoringsystem-ab2ea.firebasestorage.app",
+        messagingSenderId: "910140962027",
+        appId: "1:910140962027:web:ec86956350b4ec28567aae",
+        measurementId: "G-EQ00V82X14"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    getAnalytics(app);
+    const db = getDatabase(app);
+
+    onValue(ref(db, '.info/connected'), snap => {
+        const dot = document.getElementById('statusDot');
+        const lbl = document.getElementById('statusLabel');
+        if (snap.val()) { dot.className = 'status-dot connected'; lbl.textContent = 'Connected'; }
+        else             { dot.className = 'status-dot disconnected'; lbl.textContent = 'Disconnected'; }
+    });
+
+    window._fb = { db, ref, set, push, get, serverTimestamp };
+
+    onValue(ref(db, 'crabs'), snapshot => {
+        const data  = snapshot.val();
+        window._allCrabs = data ? Object.entries(data).map(([id, v]) => ({ id, ...v })) : [];
+        renderCrabGrid(window._allCrabs);
+        updateStats(window._allCrabs, window._deletedCrabs || []);
+        renderObservations(window._allCrabs);
+        renderTopOrigins(window._allCrabs);
+        document.getElementById('lastUpdated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+    });
+
+    onValue(ref(db, 'deletedCrabs'), snapshot => {
+        const data = snapshot.val();
+        window._deletedCrabs = data ? Object.entries(data).map(([id, v]) => ({ id, ...v })) : [];
+        updateStats(window._allCrabs || [], window._deletedCrabs);
+    });
+
+    const ALL_BOXES = [];
+    ['A','B'].forEach(row => {
+        for (let rack = 1; rack <= 5; rack++)
+            for (let slot = 1; slot <= 10; slot++)
+                ALL_BOXES.push(`${row}${rack}-${String(slot).padStart(2,'0')}`);
+    });
+    window.ALL_BOXES = ALL_BOXES;
+
+    function boxSort(a, b) {
+        const parse = s => {
+            const m = (s || '').match(/^([A-Za-z]+)(\d+)-(\d+)$/);
+            if (!m) return [s, 0, 0];
+            return [m[1].toUpperCase(), parseInt(m[2], 10), parseInt(m[3], 10)];
+        };
+        const [ar, an, as_] = parse(a);
+        const [br, bn, bs_] = parse(b);
+        if (ar !== br) return ar.localeCompare(br);
+        if (an !== bn) return an - bn;
+        return as_ - bs_;
+    }
+    window.boxSort = boxSort;
+
+    function computeAgeDays(dateIn) {
+        if (!dateIn) return null;
+        const inDate = new Date(dateIn + 'T00:00:00');
+        if (isNaN(inDate)) return null;
+        const today = new Date(); today.setHours(0,0,0,0);
+        const diff = Math.floor((today - inDate) / 86400000);
+        return diff < 0 ? 0 : diff;
+    }
+
+    function ageLabel(days) {
+        if (days === null) return { text: '—', cls: 'days' };
+        if (days <= 6) return { text: `Day ${days === 0 ? 1 : days + 1}`, cls: 'days' };
+        const week = Math.floor(days / 7);
+        const cls = week === 1 ? 'week1' : week === 2 ? 'week2' : week === 3 ? 'week3' : 'week4plus';
+        return { text: `Week ${week}`, cls };
+    }
+
+    function ageBucket(days) {
+        if (days === null || days === undefined) return null;
+        if (days <= 6) return 'age-days';
+        const week = Math.floor(days / 7);
+        if (week === 1) return 'age-week1';
+        if (week === 2) return 'age-week2';
+        if (week === 3) return 'age-week3plus';
+        return 'age-week4';
+    }
+
+    window.computeAgeDays = computeAgeDays;
+    window.ageLabel = ageLabel;
+    window.ageBucket = ageBucket;
+
+    // ── HELPER: get today's date string in YYYY-MM-DD format ──
+    function getTodayString() {
+        const today = new Date();
+        const yyyy  = today.getFullYear();
+        const mm    = String(today.getMonth() + 1).padStart(2, '0');
+        const dd    = String(today.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // ── SET MAX DATE on dateIn input to today (blocks future dates) ──
+    function setDateInMax() {
+        const input = document.getElementById('dateIn');
+        input.max = getTodayString();
+    }
+    window.setDateInMax = setDateInMax;
+
+    function isBoxOccupied(crab) { return (crab.weeklyStatus || '').toLowerCase() !== 'sold'; }
+
+    function fmtSoldDate(ts) {
+        if (!ts) return '—';
+        const d = new Date(ts);
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+             + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function rackLetter(boxNo) {
+        const m = (boxNo || '').match(/^([A-Za-z]+)/);
+        return m ? m[1].toUpperCase() : '?';
+    }
+
+    const ORIGIN_COLORS = [
+        'linear-gradient(135deg,#667eea,#764ba2)',
+        'linear-gradient(135deg,#4facfe,#00f2fe)',
+        'linear-gradient(135deg,#43e97b,#38f9d7)',
+        'linear-gradient(135deg,#fa709a,#fee140)',
+        'linear-gradient(135deg,#f093fb,#f5576c)',
+        'linear-gradient(135deg,#a78bfa,#7c3aed)',
+        'linear-gradient(135deg,#e67e22,#f39c12)',
+    ];
+
+    function renderTopOrigins(crabs) {
+        const container = document.getElementById('topOriginsList');
+        const activeCrabs = crabs.filter(c => isBoxOccupied(c));
+        const total = activeCrabs.length;
+        const map = {};
+        activeCrabs.forEach(c => {
+            const origin = (c.crabOrigin || '').trim() || 'Unknown';
+            if (!map[origin]) map[origin] = { count: 0, types: new Set() };
+            map[origin].count++;
+            if (c.crabType) map[origin].types.add(c.crabType);
+        });
+        const sorted = Object.entries(map).sort((a, b) => b[1].count - a[1].count).slice(0, 7);
+        document.getElementById('originsTotal').textContent = `${total} active crab${total !== 1 ? 's' : ''}`;
+        if (!sorted.length) { container.innerHTML = `<div class="empty-state">No origin data yet.</div>`; return; }
+        const maxCount = sorted[0][1].count;
+        container.innerHTML = sorted.map(([origin, data], idx) => {
+            const pct = total > 0 ? Math.round((data.count / total) * 100) : 0;
+            const barWidth = maxCount > 0 ? Math.round((data.count / maxCount) * 100) : 0;
+            const color = ORIGIN_COLORS[idx % ORIGIN_COLORS.length];
+            const typeTags = [...data.types].map(t => `<span class="origin-type-tag">${t}</span>`).join('');
+            return `
+            <div class="origin-item">
+                <div class="origin-top-row">
+                    <div class="origin-name">${origin}</div>
+                    <div class="origin-meta">
+                        <span class="origin-count">${data.count}</span>
+                        <span class="origin-pct">(${pct}%)</span>
+                    </div>
+                </div>
+                <div class="origin-bar-wrap">
+                    <div class="origin-bar-fill" style="width:${barWidth}%;background:${color};"></div>
+                </div>
+                ${typeTags ? `<div class="origin-types">${typeTags}</div>` : ''}
+            </div>`;
+        }).join('');
+    }
+    window.renderTopOrigins = renderTopOrigins;
+
+    function renderCrabGrid(crabs) {
+        const grid     = document.getElementById('crabGrid');
+        const moreWrap = document.getElementById('viewMoreWrap');
+        const activeCrabs = crabs.filter(c => isBoxOccupied(c));
+        if (!activeCrabs.length) {
+            grid.innerHTML = `<p style="color:#999;flex:1;">No active crabs. Click <strong>➕ Add Crab</strong> to get started.</p>`;
+            moreWrap.style.display = 'none';
+            return;
+        }
+        const sorted  = [...activeCrabs].sort((a,b) => boxSort(a.boxNo||a.id, b.boxNo||b.id));
+        const visible = sorted.slice(0, 7);
+        grid.innerHTML = visible.map(c => crabCardHTML(c)).join('');
+        moreWrap.style.display = 'flex';
+        document.getElementById('viewMoreCount').textContent = `${activeCrabs.length} total`;
+    }
+
+    function crabCardHTML(c) {
+        const days = computeAgeDays(c.dateIn);
+        const age  = ageLabel(days);
+        return `
+        <div class="crab-card">
+            <div class="crab-card-header">
+                <div class="crab-id">${c.boxNo || c.id}</div>
+                <div>
+                    <span style="cursor:pointer;margin-right:0.4rem;" onclick="window.openEditModal('${c.id}')" title="Edit">✏️</span>
+                    <span style="cursor:pointer;color:#dc3545;" onclick="window.deleteCrab('${c.id}','${c.boxNo||c.id}')" title="Delete">🗑️</span>
+                </div>
+            </div>
+            <div class="crab-status status-${cssStatus(c.weeklyStatus)}">${capitalize(c.weeklyStatus || 'Unknown')}</div>
+            <div style="font-size:0.75rem;color:#999;margin-top:0.5rem;">${c.crabType||'—'}</div>
+            <div style="font-size:0.75rem;color:#999;">${c.location||'—'}</div>
+            <div class="crab-age-display ${age.cls}">⏱ ${age.text}</div>
+        </div>`;
+    }
+
+    window._allBoxesData = [];
+    window.openAllBoxesModal = () => {
+        const crabs = window._allCrabs || [];
+        const activeCrabs = crabs.filter(c => isBoxOccupied(c));
+        window._allBoxesData = [...activeCrabs].sort((a,b) => boxSort(a.boxNo||a.id, b.boxNo||b.id));
+        document.getElementById('allBoxesSearch').value = '';
+        document.getElementById('allBoxesCount').textContent = `${activeCrabs.length} box${activeCrabs.length!==1?'es':''}`;
+        renderAllBoxesGrid(window._allBoxesData);
+        document.getElementById('allBoxesModal').style.display = 'block';
+    };
+    window.closeAllBoxesModal = () => { document.getElementById('allBoxesModal').style.display = 'none'; };
+    window.filterAllBoxes = () => {
+        const q = document.getElementById('allBoxesSearch').value.toLowerCase();
+        const filtered = window._allBoxesData.filter(c =>
+            (c.boxNo||c.id||'').toLowerCase().includes(q) ||
+            (c.crabType||'').toLowerCase().includes(q)    ||
+            (c.weeklyStatus||'').toLowerCase().includes(q)||
+            (c.location||'').toLowerCase().includes(q)
+        );
+        renderAllBoxesGrid(filtered);
+    };
+    function renderAllBoxesGrid(crabs) {
+        const grid = document.getElementById('allBoxesGrid');
+        if (!crabs.length) { grid.innerHTML = `<div style="text-align:center;color:#aaa;padding:2.5rem;font-size:0.95rem;">No boxes found</div>`; return; }
+        const groups = {};
+        const groupOrder = [];
+        crabs.forEach(c => {
+            const letter = rackLetter(c.boxNo || c.id);
+            if (!groups[letter]) { groups[letter] = []; groupOrder.push(letter); }
+            groups[letter].push(c);
+        });
+        grid.innerHTML = groupOrder.map(letter => {
+            const groupCrabs = groups[letter];
+            const cards = groupCrabs.map(c => {
+                const days = computeAgeDays(c.dateIn);
+                const age  = ageLabel(days);
+                return `
+                <div class="crab-card">
+                    <div class="crab-card-header">
+                        <div class="crab-id">${c.boxNo || c.id}</div>
+                        <div>
+                            <span style="cursor:pointer;margin-right:0.4rem;" onclick="window.openEditModal('${c.id}');closeAllBoxesModal();" title="Edit">✏️</span>
+                            <span style="cursor:pointer;color:#dc3545;" onclick="window.deleteCrab('${c.id}','${c.boxNo||c.id}')" title="Delete">🗑️</span>
+                        </div>
+                    </div>
+                    <div class="crab-status status-${cssStatus(c.weeklyStatus)}">${capitalize(c.weeklyStatus || 'Unknown')}</div>
+                    <div style="font-size:0.75rem;color:#999;margin-top:0.5rem;">${c.crabType||'—'}</div>
+                    <div style="font-size:0.75rem;color:#999;">${c.location||'—'}</div>
+                    <div class="crab-age-display ${age.cls}">⏱ ${age.text}</div>
+                </div>`;
+            }).join('');
+            return `
+            <div class="rack-group" style="grid-column:1/-1;">
+                <div class="rack-group-label">🏗️ Rack ${letter} &nbsp;<span style="font-weight:400;color:#aaa;">${groupCrabs.length} box${groupCrabs.length!==1?'es':''}</span></div>
+                <div class="rack-group-cards">${cards}</div>
+            </div>`;
+        }).join('');
+    }
+
+    function updateStats(crabs, deleted) {
+        const healthy     = crabs.filter(c => (c.weeklyStatus||'').toLowerCase() === 'healthy').length;
+        const readyToSell = crabs.filter(c => c.weeklyStatus === 'Ready to Sell').length;
+        const dead = (deleted || []).filter(c => c.weeklyStatus === 'Dead').length;
+        const sold = (deleted || []).filter(c => c.weeklyStatus === 'Sold').length;
+        const total = crabs.filter(c => (c.weeklyStatus || '').toLowerCase() !== 'sold' && (c.weeklyStatus || '').toLowerCase() !== 'dead').length;
+        const mortalityBase = total + dead;
+        const mortality = mortalityBase > 0 ? Math.round((dead / mortalityBase) * 100) : 0;
+
+        const ageDays      = crabs.filter(c => ageBucket(computeAgeDays(c.dateIn)) === 'age-days').length;
+        const ageWeek1     = crabs.filter(c => ageBucket(computeAgeDays(c.dateIn)) === 'age-week1').length;
+        const ageWeek2     = crabs.filter(c => ageBucket(computeAgeDays(c.dateIn)) === 'age-week2').length;
+        const ageWeek3plus = crabs.filter(c => ageBucket(computeAgeDays(c.dateIn)) === 'age-week3plus').length;
+        const ageWeek4     = crabs.filter(c => ageBucket(computeAgeDays(c.dateIn)) === 'age-week4').length;
+
+        document.getElementById('totalCrabs').textContent        = total;
+        document.getElementById('totalCrabsChange').textContent  = `${total} active crab${total !== 1 ? 's' : ''}`;
+        document.getElementById('healthyCrabs').textContent      = healthy;
+        const needAttention = crabs.filter(c => (c.weeklyStatus || '').toLowerCase() === 'dead').length;
+        document.getElementById('healthyChange').textContent     = needAttention === 0 ? '✓ All crabs are healthy' : `${needAttention} need attention`;
+        document.getElementById('healthyChange').className       = 'stat-change ' + (needAttention === 0 ? 'positive' : 'negative');
+        document.getElementById('mortality').textContent         = dead;
+        document.getElementById('healthScoreChange').className   = 'stat-change ' + (dead === 0 ? 'positive' : 'negative');
+        document.getElementById('healthScoreChange').textContent = dead === 0 ? '✓ No mortality' : `${mortality}% mortality rate`;
+        document.getElementById('alertCount').textContent        = readyToSell;
+        document.getElementById('alertChange').textContent       = readyToSell === 0 ? '✅ No crabs ready for sale' : `${readyToSell} crabs ready for sale`;
+        document.getElementById('alertChange').className         = 'stat-change ' + (readyToSell === 0 ? 'positive' : 'negative');
+        document.getElementById('soldCount').textContent         = sold;
+        document.getElementById('soldChange').textContent        = sold === 0 ? 'No crabs sold yet' : `${sold} crab${sold !== 1 ? 's' : ''} sold`;
+        document.getElementById('soldChange').className          = 'stat-change neutral';
+
+        document.getElementById('ageDaysCount').textContent      = ageDays;
+        document.getElementById('ageDaysChange').textContent     = ageDays === 0 ? 'No new arrivals' : `${ageDays} crab${ageDays!==1?'s':''} in Days 1–6`;
+        document.getElementById('ageWeek1Count').textContent     = ageWeek1;
+        document.getElementById('ageWeek1Change').textContent    = ageWeek1 === 0 ? 'No crabs in Week 1' : `${ageWeek1} crab${ageWeek1!==1?'s':''} in Week 1`;
+        document.getElementById('ageWeek2Count').textContent     = ageWeek2;
+        document.getElementById('ageWeek2Change').textContent    = ageWeek2 === 0 ? 'No crabs in Week 2' : `${ageWeek2} crab${ageWeek2!==1?'s':''} in Week 2`;
+        document.getElementById('ageWeek3plusCount').textContent  = ageWeek3plus;
+        document.getElementById('ageWeek3plusChange').textContent = ageWeek3plus === 0 ? 'No crabs in Week 3' : `${ageWeek3plus} crab${ageWeek3plus!==1?'s':''} in Week 3`;
+        document.getElementById('ageWeek4Count').textContent      = ageWeek4;
+        document.getElementById('ageWeek4Change').textContent     = ageWeek4 === 0 ? 'No crabs in Week 4+' : `${ageWeek4} crab${ageWeek4!==1?'s':''} in Week 4+`;
+    }
+
+    function renderObservations(crabs) {
+        const list   = document.getElementById('observationsList');
+        const sorted = [...crabs].sort((a,b)=>(b.timestamp||0)-(a.timestamp||0)).slice(0,10);
+        if (!sorted.length) { list.innerHTML = `<div class="empty-state">No observations yet.</div>`; return; }
+        list.innerHTML = sorted.map(c => {
+            const days = computeAgeDays(c.dateIn);
+            const age  = ageLabel(days);
+            return `
+            <div class="observation-item">
+                <div class="observation-info">
+                    <div class="observation-species">${c.crabType||'Unknown'} — <strong>${c.boxNo||c.id}</strong>
+                        <span class="age-badge ${age.cls}">⏱ ${age.text}</span>
+                    </div>
+                    <div class="observation-details">${c.location||'Unknown Site'} &bull; ${fmtTime(c.timestamp)}</div>
+                </div>
+                <div class="observation-status status-${cssStatus(c.weeklyStatus)}">${capitalize(c.weeklyStatus||'Unknown')}</div>
+            </div>`;
+        }).join('');
+    }
+
+    window.showStatModal = (type) => {
+        const crabs   = window._allCrabs   || [];
+        const deleted = window._deletedCrabs || [];
+        let filtered, title, subtitle, hClass;
+        switch (type) {
+            case 'total':
+                filtered=crabs.filter(c=>(c.weeklyStatus||'').toLowerCase()!=='sold'&&(c.weeklyStatus||'').toLowerCase()!=='dead').sort((a,b)=>boxSort(a.boxNo||a.id, b.boxNo||b.id));
+                title='🦀 Active Crabs'; subtitle=`${filtered.length} active crab${filtered.length!==1?'s':''} (excludes sold & dead)`; hClass='total'; break;
+            case 'healthy':
+                filtered=crabs.filter(c=>c.weeklyStatus==='healthy').sort((a,b)=>boxSort(a.boxNo||a.id, b.boxNo||b.id));
+                title='💚 Healthy Crabs'; subtitle=`${filtered.length} healthy crabs`; hClass='healthy'; break;
+            case 'mortality':
+                filtered=deleted.filter(c=>c.weeklyStatus==='Dead').sort((a,b)=>(b.diedAt||b.timestamp||0)-(a.diedAt||a.timestamp||0));
+                title='💀 Mortality Records'; subtitle=`${filtered.length} mortality record${filtered.length!==1?'s':''}`; hClass='mortality'; break;
+            case 'sell':
+                filtered=crabs.filter(c=>c.weeklyStatus==='Ready to Sell').sort((a,b)=>boxSort(a.boxNo||a.id, b.boxNo||b.id));
+                title='💰 Ready to Sell'; subtitle=`${filtered.length} crabs ready for sale`; hClass='sell'; break;
+            case 'sold':
+                filtered=deleted.filter(c=>c.weeklyStatus==='Sold').sort((a,b)=>(b.soldAt||b.timestamp||0)-(a.soldAt||a.timestamp||0));
+                title='🏷️ Sold Crabs'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} sold`; hClass='sold'; break;
+            case 'age-days':
+                filtered=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-days').sort((a,b)=>computeAgeDays(a.dateIn)-computeAgeDays(b.dateIn));
+                title='🦀 Day 1–6 (New Arrivals)'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} in early days`; hClass='age-days'; break;
+            case 'age-week1':
+                filtered=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week1').sort((a,b)=>computeAgeDays(a.dateIn)-computeAgeDays(b.dateIn));
+                title='📅 Week 1 (Days 7–13)'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} in Week 1`; hClass='age-week1'; break;
+            case 'age-week2':
+                filtered=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week2').sort((a,b)=>computeAgeDays(a.dateIn)-computeAgeDays(b.dateIn));
+                title='📆 Week 2 (Days 14–20)'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} in Week 2`; hClass='age-week2'; break;
+            case 'age-week3plus':
+                filtered=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week3plus').sort((a,b)=>computeAgeDays(a.dateIn)-computeAgeDays(b.dateIn));
+                title='🗓️ Week 3 (Days 21–27)'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} in Week 3`; hClass='age-week3plus'; break;
+            case 'age-week4':
+                filtered=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week4').sort((a,b)=>computeAgeDays(a.dateIn)-computeAgeDays(b.dateIn));
+                title='🗓️ Week 4+ (Day 28+)'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} in Week 4+`; hClass='age-week4'; break;
+        }
+        window._statCrabs = filtered;
+        window._statType  = type;
+        document.getElementById('statDetailHeader').className     = `detail-modal-header ${hClass}`;
+        document.getElementById('statDetailTitle').textContent    = title;
+        document.getElementById('statDetailSubtitle').textContent = subtitle;
+        document.getElementById('statDetailSearch').value         = '';
+        renderStatList(filtered, type);
+        document.getElementById('statDetailModal').style.display  = 'block';
+    };
+
+    function renderStatList(crabs, type) {
+        const body    = document.getElementById('statDetailBody');
+        const isSoldModal = (type === 'sold');
+        if (!crabs.length) {
+            body.innerHTML = `<div class="empty-state" style="padding:3rem;"><div style="font-size:3rem;margin-bottom:1rem;">🔍</div><div>No records found</div></div>`;
+            return;
+        }
+        const isAgeBucket = type.startsWith('age-');
+        body.innerHTML = crabs.map(c => {
+            const sk   = (c.weeklyStatus||'').toLowerCase().replace(/\s+/g,'');
+            const bCls = sk==='healthy'?'badge-healthy':sk==='dead'?'badge-dead':sk==='readytosell'?'badge-sell':sk==='sold'?'badge-sold':'badge-unknown';
+            const iCls = isAgeBucket ? type : (type==='healthy'?'healthy':type==='mortality'?'dead':type==='sell'?'sell':type==='sold'?'sold':'total');
+            const wDiff = (c.currentWeight!=null&&c.originWeight!=null)?(parseFloat(c.currentWeight)-parseFloat(c.originWeight)).toFixed(2):null;
+            const wDiffHtml = wDiff!==null?`<span style="color:${wDiff>=0?'#28a745':'#dc3545'};font-size:0.72rem;margin-left:3px;">(${wDiff>=0?'+':''}${wDiff}g)</span>`:'';
+            const days    = computeAgeDays(c.dateIn);
+            const age     = ageLabel(days);
+            const ageText = days !== null ? `${age.text} (${days} day${days!==1?'s':''})` : '—';
+            const soldDateField = isSoldModal ? `
+                <div class="crab-detail-field sold-highlight" style="grid-column: span 2;">
+                    <div class="crab-detail-field-label">🏷️ Date Sold</div>
+                    <div class="crab-detail-field-value">${fmtSoldDate(c.soldAt || c.timestamp)}</div>
+                </div>` : '';
+            const isDeadModal = (type === 'mortality');
+            const deadDateField = isDeadModal ? `
+                <div class="crab-detail-field dead-highlight" style="grid-column: span 2;">
+                    <div class="crab-detail-field-label">💀 Date Died</div>
+                    <div class="crab-detail-field-value">${fmtSoldDate(c.diedAt || c.updatedAt || c.timestamp)}</div>
+                </div>` : '';
+            return `<div class="crab-detail-item ${iCls}">
+                <div class="crab-detail-top">
+                    <div>
+                        <div class="crab-detail-box">${c.boxNo||c.id}</div>
+                        <div class="crab-detail-type">${c.crabType||'Unknown Type'}</div>
+                    </div>
+                    <span class="crab-detail-badge ${bCls}">${c.weeklyStatus||'Unknown'}</span>
+                </div>
+                <div class="crab-detail-grid">
+                    ${soldDateField}
+                    ${deadDateField}
+                    <div class="crab-detail-field age-highlight"><div class="crab-detail-field-label">⏱ Age</div><div class="crab-detail-field-value">${ageText}</div></div>
+                    <div class="crab-detail-field"><div class="crab-detail-field-label">📅 Date In</div><div class="crab-detail-field-value">${c.dateIn||'—'}</div></div>
+                    <div class="crab-detail-field"><div class="crab-detail-field-label">📍 Location</div><div class="crab-detail-field-value">${c.location||'—'}</div></div>
+                    <div class="crab-detail-field"><div class="crab-detail-field-label">⚖️ Current Wt.</div><div class="crab-detail-field-value">${c.currentWeight!=null?c.currentWeight+' g':'—'}${wDiffHtml}</div></div>
+                    <div class="crab-detail-field"><div class="crab-detail-field-label">⚖️ Origin Wt.</div><div class="crab-detail-field-value">${c.originWeight!=null?c.originWeight+' g':'—'}</div></div>
+                    <div class="crab-detail-field"><div class="crab-detail-field-label">🚻 Gender</div><div class="crab-detail-field-value">${capitalize(c.gender||'—')}</div></div>
+                    <div class="crab-detail-field"><div class="crab-detail-field-label">🏷️ Class</div><div class="crab-detail-field-value">${c.crabClass?'Class '+c.crabClass:'—'}</div></div>
+                    <div class="crab-detail-field"><div class="crab-detail-field-label">🌊 Origin</div><div class="crab-detail-field-value">${c.crabOrigin||'—'}</div></div>
+                    <div class="crab-detail-field"><div class="crab-detail-field-label">👤 ${isSoldModal ? 'Sold By' : isDeadModal ? 'Recorded Dead By' : 'Recorded By'}</div><div class="crab-detail-field-value">${isSoldModal ? (c.soldBy||c.recordedBy||'—') : isDeadModal ? (c.diedBy||c.updatedBy||c.recordedBy||'—') : (c.recordedBy||'—')}</div></div>
+                </div>
+                ${c.notes?`<div class="crab-detail-notes">📝 ${c.notes}</div>`:''}
+            </div>`;
+        }).join('');
+    }
+
+    window.filterStatDetail = () => {
+        const q = document.getElementById('statDetailSearch').value.toLowerCase();
+        const filtered = (window._statCrabs||[]).filter(c => {
+            const days = computeAgeDays(c.dateIn);
+            const age  = ageLabel(days);
+            return (c.boxNo||c.id||'').toLowerCase().includes(q)||(c.crabType||'').toLowerCase().includes(q)||
+                (c.location||'').toLowerCase().includes(q)||(c.gender||'').toLowerCase().includes(q)||
+                (c.crabOrigin||'').toLowerCase().includes(q)||(c.weeklyStatus||'').toLowerCase().includes(q)||
+                age.text.toLowerCase().includes(q)||(c.dateIn||'').includes(q);
+        });
+        renderStatList(filtered, window._statType);
+    };
+    window.closeStatDetailModal = () => { document.getElementById('statDetailModal').style.display = 'none'; };
+
+    window.onBoxNoInput = () => {
+        if (window._editingKey) return;
+        const val      = (document.getElementById('boxNo').value || '').toUpperCase().trim();
+        const allCrabs = window._allCrabs || [];
+        const takenSet = new Set(allCrabs.map(c => (c.boxNo||'').toUpperCase()).filter(Boolean));
+        const deleted = window._deletedCrabs || [];
+        const historicBoxes = deleted.map(c => (c.boxNo||'').toUpperCase()).filter(Boolean);
+        const poolSet = new Set([...ALL_BOXES, ...historicBoxes]);
+        let pool = [...poolSet].sort((a, b) => boxSort(a, b));
+        let matches = val ? pool.filter(b => b.includes(val)) : pool;
+        matches = [...matches].sort((a,b) => {
+            const ae = !takenSet.has(a), be = !takenSet.has(b);
+            if (ae && !be) return -1; if (!ae && be) return 1;
+            return boxSort(a, b);
+        });
+        const dd = document.getElementById('boxNoDropdown');
+        if (!matches.length) { dd.classList.remove('open'); return; }
+        const emptyOnes = matches.filter(b => !takenSet.has(b));
+        const takenOnes = matches.filter(b =>  takenSet.has(b));
+        let html = '';
+        if (emptyOnes.length) { html += `<div class="boxno-section-label">✅ Available (${emptyOnes.length})</div>`; html += emptyOnes.map(b=>`<div class="boxno-option" onmousedown="selectBoxNo('${b}')">${b}<span class="box-tag tag-empty">Empty</span></div>`).join(''); }
+        if (takenOnes.length) { html += `<div class="boxno-section-label">⛔ Already used (${takenOnes.length})</div>`; html += takenOnes.map(b=>`<div class="boxno-option" onmousedown="selectBoxNo('${b}')">${b}<span class="box-tag tag-occupied">Occupied</div>`).join(''); }
+        dd.innerHTML = html; dd.classList.add('open');
+    };
+    window.selectBoxNo = (val) => { document.getElementById('boxNo').value = val; document.getElementById('boxNoDropdown').classList.remove('open'); };
+    window.delayCloseDropdown = () => { setTimeout(() => document.getElementById('boxNoDropdown').classList.remove('open'), 180); };
+
+    function isBoxTaken(boxNoVal, excludeKey) {
+        return (window._allCrabs||[]).some(c => (c.boxNo||'').toUpperCase()===boxNoVal && c.id!==excludeKey);
+    }
+
+    window.updateAgePreview = () => {
+        const dateIn  = document.getElementById('dateIn').value;
+        const preview = document.getElementById('agePreview');
+        const today   = getTodayString();
+
+        // Validate: reject future dates
+        if (dateIn && dateIn > today) {
+            document.getElementById('dateIn').value = today;
+            preview.textContent = '';
+            setTimeout(() => {}, 3000);
+            return;
+        }
+        const days = computeAgeDays(dateIn);
+        if (days === null) { preview.textContent = ''; return; }
+        const age = ageLabel(days);
+        preview.textContent = `⏱ Age: ${age.text} (${days} day${days !== 1 ? 's' : ''})`;
+    };
+
+    document.getElementById('crabDataForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const btn = document.getElementById('saveBtn');
+        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Saving...';
+
+        const key      = window._editingKey;
+        const boxNoVal = document.getElementById('boxNo').value.trim().toUpperCase();
+
+        // Extra guard: reject future date on submit
+        const dateInVal = document.getElementById('dateIn').value;
+        const today     = getTodayString();
+        if (dateInVal > today) {
+            showToast('❌ Date In cannot be a future date!', 'error');
+            btn.disabled = false; btn.innerHTML = '💾 Save Data'; return;
+        }
+
+        if (!key && isBoxTaken(boxNoVal, null)) {
+            showToast(`❌ Box ${boxNoVal} is already in use!`, 'error');
+            btn.disabled = false; btn.innerHTML = '💾 Save Data'; return;
+        }
+
+        const currentUser = (() => { try { return JSON.parse(sessionStorage.getItem('crabMonitoringSession'))?.username||'Unknown'; } catch { return 'Unknown'; } })();
+        const now = Date.now();
+
+        const baseData = {
+            dateIn: dateInVal,
+            boxNo: boxNoVal,
+            crabOrigin: document.getElementById('crabOrigin').value,
+            gender: document.getElementById('gender').value,
+            crabType: document.getElementById('crabType').value,
+            crabClass: document.getElementById('crabClass').value,
+            originWeight: parseFloat(document.getElementById('originWeight').value),
+            currentWeight: parseFloat(document.getElementById('currentWeight').value),
+            weeklyStatus: document.getElementById('weeklyStatus').value,
+            location: document.getElementById('location').value,
+            notes: document.getElementById('notes').value,
+            timestamp: now,
+            recordedBy: currentUser
+        };
+
+        const isSold = baseData.weeklyStatus === 'Sold';
+        const isDead = baseData.weeklyStatus === 'Dead';
+
+        try {
+            const { db, ref, set, push, get } = window._fb;
+            if (key) {
+                const existingSnap = await get(ref(db, `crabs/${key}`));
+                const existing = existingSnap.exists() ? existingSnap.val() : {};
+                const prevDead = existing.weeklyStatus === 'Dead';
+                const data = {
+                    ...baseData,
+                    createdAt: existing.createdAt || existing.timestamp || now,
+                    addedBy:   existing.addedBy   || existing.recordedBy || currentUser,
+                    updatedAt: now,
+                    updatedBy: currentUser,
+                    ...(isDead ? {
+                        diedAt: prevDead ? (existing.diedAt || now) : now,
+                        diedBy: prevDead ? (existing.diedBy || currentUser) : currentUser
+                    } : {})
+                };
+                if (isSold) {
+                    await set(ref(db, `deletedCrabs/${key}`), { ...data, soldAt: now, soldBy: currentUser });
+                    await set(ref(db, `crabs/${key}`), null);
+                    showToast(`🏷️ ${boxNoVal} marked as Sold — box is now free!`, 'success');
+                } else if (isDead) {
+                    await set(ref(db, `deletedCrabs/${key}`), { ...data, diedAt: data.diedAt || now, diedBy: data.diedBy || currentUser });
+                    await set(ref(db, `crabs/${key}`), null);
+                    showToast(`💀 ${boxNoVal} marked as Dead — box is now free!`, 'success');
+                } else {
+                    await set(ref(db, `crabs/${key}`), data);
+                    showToast(`✅ ${boxNoVal} updated!`, 'success');
+                }
+            } else {
+                const data = {
+                    ...baseData,
+                    createdAt: now,
+                    addedBy: currentUser,
+                    ...(isDead ? { diedAt: now, diedBy: currentUser } : {})
+                };
+                if (isSold) {
+                    await push(ref(db, 'deletedCrabs'), { ...data, soldAt: now, soldBy: currentUser });
+                    showToast(`🏷️ ${boxNoVal} recorded as Sold!`, 'success');
+                } else if (isDead) {
+                    await push(ref(db, 'deletedCrabs'), { ...data, diedAt: now, diedBy: currentUser });
+                    showToast(`💀 ${boxNoVal} recorded as Dead — box is now free!`, 'success');
+                } else {
+                    await push(ref(db, 'crabs'), data);
+                    showToast(`✅ ${boxNoVal} saved!`, 'success');
+                }
+            }
+            closeModal();
+        } catch (err) { showToast(`❌ Error: ${err.message}`, 'error'); }
+
+        btn.disabled = false; btn.innerHTML = '💾 Save Data';
+    });
+
+    window.openEditModal = async (key) => {
+        const { db, ref, get } = window._fb;
+        const snap = await get(ref(db, `crabs/${key}`));
+        if (!snap.exists()) return;
+        const d = snap.val();
+        window._editingKey = key;
+
+        // Set max date BEFORE populating the field
+        setDateInMax();
+
+        document.getElementById('modalTitle').textContent = `Edit Crab — ${d.boxNo||key}`;
+        ['dateIn','boxNo','crabOrigin','gender','crabType','crabClass','originWeight','currentWeight','weeklyStatus','location','notes'].forEach(id => {
+            document.getElementById(id).value = d[id] || '';
+        });
+        document.getElementById('boxNo').readOnly = true;
+        document.getElementById('saveBtn').textContent = '💾 Update Data';
+        document.getElementById('crabModal').style.display = 'block';
+        updateAgePreview();
+    };
+
+    window.openAddCrabModal = () => {
+        window._editingKey = null;
+        document.getElementById('boxNo').readOnly = false;
+        document.getElementById('modalTitle').textContent = 'Add New Crab';
+        document.getElementById('crabDataForm').reset();
+        document.getElementById('saveBtn').textContent = '💾 Save Data';
+        document.getElementById('boxNoDropdown').classList.remove('open');
+        document.getElementById('agePreview').textContent = '';
+
+        // Set max date to today — blocks future date selection in calendar
+        setDateInMax();
+
+        document.getElementById('crabModal').style.display = 'block';
+        setTimeout(() => {
+            const takenSet = new Set((window._allCrabs||[]).map(c=>(c.boxNo||'').toUpperCase()).filter(Boolean));
+            const deleted  = window._deletedCrabs || [];
+            const historic = deleted.map(c=>(c.boxNo||'').toUpperCase()).filter(Boolean);
+            const pool     = [...new Set([...ALL_BOXES, ...historic])].sort((a,b)=>boxSort(a,b));
+            const firstFree = pool.find(b => !takenSet.has(b));
+            if (firstFree) document.getElementById('boxNo').placeholder = `Next available: ${firstFree}`;
+        }, 60);
+    };
+
+    window.deleteCrab = async (key, boxNo) => {
+        if (!confirm(`Delete crab ${boxNo}? This cannot be undone.`)) return;
+        const { db, ref, set, get } = window._fb;
+        try {
+            const snap = await get(ref(db, `crabs/${key}`));
+            if (snap.exists()) {
+                const data = snap.val();
+                const removedNow = Date.now();
+                const remover = (() => { try { return JSON.parse(sessionStorage.getItem('crabMonitoringSession'))?.username||'Unknown'; } catch { return 'Unknown'; } })();
+                await set(ref(db, `deletedCrabs/${key}`), {
+                    ...data, weeklyStatus: 'Removed',
+                    removedAt: removedNow, removedBy: remover,
+                    createdAt: data.createdAt || data.timestamp,
+                    addedBy:   data.addedBy   || data.recordedBy || remover,
+                    updatedAt: data.updatedAt  || null,
+                    updatedBy: data.updatedBy  || null
+                });
+            }
+            await set(ref(db, `crabs/${key}`), null);
+            showToast(`✅ ${boxNo} deleted!`, 'success');
+        } catch (err) { showToast(`❌ ${err.message}`, 'error'); }
+    };
+
+    function cssStatus(s) { return (s||'unknown').toLowerCase().replace(/\s+/g,''); }
+    function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+    window.capitalize = capitalize;
+
+    function fmtTime(ts) {
+        if (!ts) return 'Unknown';
+        const d = Date.now()-ts, m = Math.floor(d/60000);
+        if (m<1) return 'Just now'; if (m<60) return `${m}m ago`;
+        const h=Math.floor(m/60); if (h<24) return `${h}h ago`;
+        return new Date(ts).toLocaleDateString();
+    }
+
+    function showToast(msg, type='') {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.className = `toast ${type} show`;
+        setTimeout(() => { t.className = 'toast'; }, 3500);
+    }
+    window.showToast = showToast;
+
+    try {
+        const s = JSON.parse(sessionStorage.getItem('crabMonitoringSession'));
+        if (s) {
+            document.getElementById('userName').textContent = s.name || s.username;
+            document.getElementById('userRole').textContent = capitalize(s.role);
+        }
+    } catch {}
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        sessionStorage.removeItem('crabMonitoringSession');
+        localStorage.removeItem('crabMonitoringSession');
+        window.location.href = 'index.html';
+    });
+</script>
+
+<script>
+    function closeModal() {
+        document.getElementById('crabModal').style.display = 'none';
+        document.getElementById('crabDataForm').reset();
+        document.getElementById('boxNoDropdown').classList.remove('open');
+        document.getElementById('agePreview').textContent = '';
+        window._editingKey = null;
+    }
+    window.onclick = e => {
+        if (e.target === document.getElementById('crabModal'))       closeModal();
+        if (e.target === document.getElementById('statDetailModal')) closeStatDetailModal();
+        if (e.target === document.getElementById('allBoxesModal'))   closeAllBoxesModal();
+    };
+</script>
+
+<!-- Mobile Drawer Overlay -->
+<div class="mobile-drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+<!-- Mobile Drawer -->
+<div class="mobile-drawer" id="mobileDrawer">
+    <div class="mobile-drawer-header">
+        <div class="mobile-drawer-title">Navigation</div>
+        <div class="mobile-drawer-user" id="drawerUserName">—</div>
+        <div class="mobile-drawer-role" id="drawerUserRole">—</div>
+    </div>
+    <nav class="mobile-drawer-nav">
+        <a href="dashboard.html" class="mobile-drawer-link active">
+            <span class="mobile-drawer-link-icon">🏠</span> Dashboard
+        </a>
+        <a href="history.html" class="mobile-drawer-link">
+            <span class="mobile-drawer-link-icon">📋</span> History
+        </a>
+    </nav>
+    <div style="flex:1;"></div>
+    <div class="mobile-drawer-divider"></div>
+    <button class="mobile-drawer-link" id="drawerLogoutBtn" style="width:100%;text-align:left;border:none;cursor:pointer;background:none;font-family:inherit;color:#dc3545;padding:1rem 1.25rem;margin-bottom:0.5rem;">
+        <span class="mobile-drawer-link-icon">🚪</span> Logout
+    </button>
+</div>
+
+<script>
+    const hamburgerBtn   = document.getElementById('hamburgerBtn');
+    const mobileDrawer   = document.getElementById('mobileDrawer');
+    const drawerOverlay  = document.getElementById('drawerOverlay');
+    function openDrawer() {
+        mobileDrawer.classList.add('open');
+        drawerOverlay.classList.add('open');
+        hamburgerBtn.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeDrawer() {
+        mobileDrawer.classList.remove('open');
+        drawerOverlay.classList.remove('open');
+        hamburgerBtn.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+    hamburgerBtn.addEventListener('click', () => {
+        mobileDrawer.classList.contains('open') ? closeDrawer() : openDrawer();
+    });
+
+    try {
+        const s = JSON.parse(sessionStorage.getItem('crabMonitoringSession'));
+        if (s) {
+            document.getElementById('drawerUserName').textContent = s.name || s.username || '—';
+            const r = s.role || '';
+            document.getElementById('drawerUserRole').textContent = r.charAt(0).toUpperCase() + r.slice(1);
+        }
+    } catch {}
+
+    document.getElementById('drawerLogoutBtn').addEventListener('click', () => {
+        sessionStorage.removeItem('crabMonitoringSession');
+        localStorage.removeItem('crabMonitoringSession');
+        window.location.href = 'index.html';
+    });
+</script>
+</body>
+</html>
