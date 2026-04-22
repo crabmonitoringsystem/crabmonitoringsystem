@@ -1410,7 +1410,7 @@ window.onclick=e=>{ if(e.target===document.getElementById('crabModal'))closeCrab
 
 window.showReportData = () => {
     const reportType = document.getElementById('reportType').value;
-    const dateType = document.getElementById('reportDateType').value;
+    let dateType = document.getElementById('reportDateType').value;
     const fromDate = document.getElementById('reportFromDate').value;
     const toDate = document.getElementById('reportToDate').value;
     const locationFilter = document.getElementById('reportLocation').value.trim();
@@ -1434,7 +1434,9 @@ window.showReportData = () => {
             title = 'Mortality Report';
             break;
         case 'new-load':
-            data = (window._allCrabs || []);
+            // New Load shows all crabs (active and deleted) that were newly encoded within the selected date range
+            data = [...(window._allCrabs || []), ...(window._deletedCrabs || [])];
+            dateType = 'dateIn'; // Force date type to dateIn for new load
             title = 'New Load Report';
             break;
         case 'all':
