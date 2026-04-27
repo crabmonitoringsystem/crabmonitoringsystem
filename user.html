@@ -110,9 +110,9 @@
             box-shadow:0 2px 16px rgba(102,126,234,0.35);
         }
         .app-header-content { display:flex; align-items:center; gap:0.75rem; max-width:1400px; margin:0 auto; }
-        .app-logo { flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:60px; height:60px; border-radius: 50%; overflow: hidden; }
-        .app-logo img { width:100%; height:100%; object-fit:cover; display:block; }
-        .crab-icon { display:inline-flex; align-items:center; justify-content:center; width:100px; height:100px; }
+        .app-logo { flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; }
+        .app-logo img { width:100%; height:100%; object-fit:contain; display:block; }
+        .crab-icon { display:inline-flex; align-items:center; justify-content:center; width:80px; height:100px; }
         .crab-icon img { width:100%; height:100%; object-fit:contain; display:block; }
         .app-title { font-size:1.05rem; font-weight:700; line-height:1.2; }
         .app-subtitle { font-size:0.73rem; opacity:0.8; }
@@ -324,8 +324,6 @@
         .form-group label { display:block; margin-bottom:.5rem; color:#333; font-weight:500; font-size:.9rem; }
         .form-group input,.form-group select,.form-group textarea { width:100%; padding:.75rem; border:2px solid #e1e1e1; border-radius:8px; font-size:16px; transition:border-color .3s; font-family:inherit; }
         .form-group input:focus,.form-group select:focus,.form-group textarea:focus { outline:none; border-color:#667eea; }
-        .form-group input:disabled,.form-group select:disabled,.form-group textarea:disabled { background-color:#f0f0f0; color:#999; border-color:#d0d0d0; cursor:not-allowed; }
-        .form-group input[readonly],.form-group textarea[readonly] { background-color:#f0f0f0; color:#999; border-color:#d0d0d0; cursor:not-allowed; }
         .form-group textarea { resize:vertical; min-height:90px; }
         .age-preview { margin-top:.4rem; font-size:.82rem; color:#667eea; font-weight:600; min-height:1.2em; }
         .form-section { padding:1.25rem; margin-bottom:1.25rem; border:1px solid #e1e1e1; border-radius:12px; background:#fafafa; }
@@ -412,7 +410,7 @@
             .header-nav    { display:none !important; }
             .header-user   { display:none !important; }
             .logout-btn    { display:none !important; }
-            .app-subtitle  { display:none; }
+            /* .app-subtitle  { display:none; }  Removed to always show subtitle */
             .drawer-overlay { display:block; }
             .mobile-drawer  { display:flex; }
             .main-container { padding:0 .75rem; margin:1rem auto; }
@@ -565,9 +563,10 @@
             <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">
                 <span></span><span></span><span></span>
             </button>
-            <div class="app-logo"><img src="Logo.jpg" alt="Crab Logo"></div>
+            <div class="app-logo"><img src="image.png" alt="Crab Logo"></div>
             <div>
                 <div class="app-title">Crab Monitoring System</div>
+                 <div class="app-subtitle">Recirculating Aquaculture System</div>
                 <div class="app-subtitle">Ingore-Baldoza Fisherfolks Association</div>
             </div> 
             <div class="header-right">
@@ -591,7 +590,7 @@
     <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
     <div class="mobile-drawer" id="mobileDrawer">
         <div class="drawer-hd">
-            <div class="drawer-hd-label"></div>
+            <div class="drawer-hd-label">Navigation</div>
             <div class="drawer-hd-name" id="drawerUserName">—</div>
             <div class="drawer-hd-role" id="drawerUserRole">—</div>
         </div>
@@ -651,17 +650,18 @@
             </div>
             <div class="report-section">
                 <div class="report-header">
-                    <h2 class="section-title">📊 Summary of Inventory</h2>
+                    <h2 class="section-title">📊 Generate Report</h2>
                 </div>
                 <div class="report-form">
                     <div class="report-row">
                         <div class="report-group">
                             <label for="reportType">Report Type</label>
                             <select id="reportType">
-                                <option value="sold">🏷️ Sold</option>
-                                <option value="remaining">📦 Remaining</option>
-                                <option value="mortality">💀 Mortality</option>
-                                <option value="new-load">📥 New Load</option>
+                                <option value="sold">🏷️ Sold Crabs</option>
+                                <option value="dead">💀 Dead Crabs</option>
+                                <option value="healthy">💚 Healthy Crabs</option>
+                                <option value="ready-to-sell">💰 Ready to Sell</option>
+                                <option value="all-active">🦀 All Active Crabs</option>
                                 <option value="all">📋 All Records</option>
                             </select>
                         </div>
@@ -670,7 +670,6 @@
                             <select id="reportDateType">
                                 <option value="dateIn">📅 Date In</option>
                                 <option value="dateSold">🏷️ Date Sold</option>
-                                <option value="dateDead">💀 Date of Dead</option>
                             </select>
                         </div>
                         <div class="report-group">
@@ -697,7 +696,7 @@
                             </select>
                         </div>
                         <div class="report-actions">
-                            <button class="btn btn-primary" id="reportToggleBtn" onclick="toggleReportData()">Show Data</button>
+                            <button class="btn btn-primary" onclick="showReportData()">👁️ Show Data</button>
                         </div>
                     </div>
                 </div>
@@ -754,7 +753,7 @@
                 </div>
             </div>
             <div class="hist-card">
-                <div class="hist-card-hd"><span>📋 Activity Log</span><span class="count-badge" id="histCountBadge">Loading…</span></div>
+                <div class="hist-card-hd"><span>📋 Activity Log — Every Action</span><span class="count-badge" id="histCountBadge">Loading…</span></div>
                 <div class="scroll-hint" id="scrollHint">
                     <span>👈 Scroll</span>
                     <div class="scroll-hint-track"><div class="scroll-hint-thumb" id="scrollThumb"></div></div>
@@ -1022,9 +1021,9 @@ function closeDrawer(){ mobileDrawer.classList.remove('open'); drawerOverlay.cla
 window.closeDrawer = closeDrawer;
 hamburgerBtn.addEventListener('click',()=>mobileDrawer.classList.contains('open')?closeDrawer():openDrawer());
 
-
-//    SHARED HELPERS
-
+/* ══════════════════════════════════════════════
+   SHARED HELPERS
+══════════════════════════════════════════════ */
 function capitalize(s){ return s?s.charAt(0).toUpperCase()+s.slice(1):''; }
 window.capitalize = capitalize;
 function getTodayString(){ const t=new Date(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; }
@@ -1054,9 +1053,9 @@ function shakeFields(){ ['loginUsername','loginPassword'].forEach(id=>{ const el
 function setLoading(on,text,dest){ if(text)document.getElementById('loadText').textContent=text; if(dest)document.getElementById('loadDest').textContent=dest||''; document.getElementById('loadOverlay').classList.toggle('on',on); }
 window.toggleEye=()=>{ const inp=document.getElementById('loginPassword'),btn=document.getElementById('eyeBtn'); inp.type=inp.type==='password'?'text':'password'; btn.textContent=inp.type==='text'?'🙈':'👁'; };
 
-
-//    ACTIVITY LOG HELPERS
-
+/* ══════════════════════════════════════════════
+   ACTIVITY LOG HELPERS
+══════════════════════════════════════════════ */
 const TRACKED_FIELDS = ['dateIn','crabOrigin','gender','crabType','crabClass',
                          'originWeight','currentWeight','weeklyStatus','location','notes'];
 
@@ -1096,9 +1095,9 @@ async function writeLog(action, boxNo, snapshot, changes, eventBy, eventTs) {
 }
 window.writeLog = writeLog;
 
-
-//    DASHBOARD LOGIC
-
+/* ══════════════════════════════════════════════
+   DASHBOARD LOGIC
+══════════════════════════════════════════════ */
 const ORIGIN_COLORS=['linear-gradient(135deg,#667eea,#764ba2)','linear-gradient(135deg,#4facfe,#00f2fe)','linear-gradient(135deg,#43e97b,#38f9d7)','linear-gradient(135deg,#fa709a,#fee140)','linear-gradient(135deg,#f093fb,#f5576c)','linear-gradient(135deg,#a78bfa,#7c3aed)','linear-gradient(135deg,#e67e22,#f39c12)'];
 
 function renderTopOrigins(crabs){
@@ -1173,7 +1172,7 @@ function updateStats(crabs,deleted){
 
 function renderObservations(crabs){
     const list=document.getElementById('observationsList');
-    const sorted=[...crabs].sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+    const sorted=[...crabs].sort((a,b)=>(b.timestamp||0)-(a.timestamp||0)).slice(0,10);
     if(!sorted.length){ list.innerHTML='<div class="empty-state">No observations yet.</div>'; return; }
     list.innerHTML=sorted.map(c=>{ const days=computeAgeDays(c.dateIn), age=ageLabel(days);
         return `<div class="observation-item"><div class="observation-info"><div class="observation-species">${c.crabType||'Unknown'} — <strong>${c.boxNo||c.id}</strong><span class="age-badge ${age.cls}">⏱ ${age.text}</span></div><div class="observation-details">${c.location||'Unknown Site'} &bull; ${fmtTime(c.timestamp)}</div></div><div class="observation-status status-${cssStatus(c.weeklyStatus)}">${capitalize(c.weeklyStatus||'Unknown')}</div></div>`;
@@ -1408,27 +1407,12 @@ function closeCrabModal(){ document.getElementById('crabModal').style.display='n
 window.closeCrabModal=closeCrabModal;
 window.onclick=e=>{ if(e.target===document.getElementById('crabModal'))closeCrabModal(); if(e.target===document.getElementById('statDetailModal'))closeStatDetailModal(); if(e.target===document.getElementById('allBoxesModal'))closeAllBoxesModal(); };
 
-
-//    REPORT GENERATION
-
-window.toggleReportData = () => {
-    const reportResults = document.getElementById('reportResults');
-    const toggleBtn = document.getElementById('reportToggleBtn');
-    
-    if (reportResults.style.display === 'none' || reportResults.style.display === '') {
-        // Show data
-        window.showReportData();
-        toggleBtn.textContent = 'Close';
-    } else {
-        // Close data
-        reportResults.style.display = 'none';
-        toggleBtn.textContent = 'Show Data';
-    }
-};
-
+/* ══════════════════════════════════════════════
+   REPORT GENERATION
+══════════════════════════════════════════════ */
 window.showReportData = () => {
     const reportType = document.getElementById('reportType').value;
-    let dateType = document.getElementById('reportDateType').value;
+    const dateType = document.getElementById('reportDateType').value;
     const fromDate = document.getElementById('reportFromDate').value;
     const toDate = document.getElementById('reportToDate').value;
     const locationFilter = document.getElementById('reportLocation').value.trim();
@@ -1443,19 +1427,21 @@ window.showReportData = () => {
             data = (window._deletedCrabs || []).filter(c => c.weeklyStatus === 'Sold');
             title = 'Sold Crabs Report';
             break;
-        case 'remaining':
-            data = (window._allCrabs || []).filter(c => (c.weeklyStatus || '').toLowerCase() !== 'sold' && (c.weeklyStatus || '').toLowerCase() !== 'dead');
-            title = 'Remaining Crabs Report';
-            break;
-        case 'mortality':
+        case 'dead':
             data = (window._deletedCrabs || []).filter(c => c.weeklyStatus === 'Dead');
-            title = 'Mortality Report';
+            title = 'Dead Crabs Report';
             break;
-        case 'new-load':
-            // New Load shows all crabs (active and deleted) that were newly encoded within the selected date range
-            data = [...(window._allCrabs || []), ...(window._deletedCrabs || [])];
-            dateType = 'dateIn'; // Force date type to dateIn for new load
-            title = 'New Load Report';
+        case 'healthy':
+            data = (window._allCrabs || []).filter(c => c.weeklyStatus === 'healthy');
+            title = 'Healthy Crabs Report';
+            break;
+        case 'ready-to-sell':
+            data = (window._allCrabs || []).filter(c => c.weeklyStatus === 'Ready to Sell');
+            title = 'Ready to Sell Crabs Report';
+            break;
+        case 'all-active':
+            data = (window._allCrabs || []).filter(c => (c.weeklyStatus || '').toLowerCase() !== 'sold' && (c.weeklyStatus || '').toLowerCase() !== 'dead');
+            title = 'All Active Crabs Report';
             break;
         case 'all':
             data = [...(window._allCrabs || []), ...(window._deletedCrabs || [])];
@@ -1472,8 +1458,6 @@ window.showReportData = () => {
                 relevantDate = c.dateIn ? new Date(c.dateIn) : null;
             } else if (dateType === 'dateSold') {
                 relevantDate = c.soldAt ? new Date(c.soldAt) : null;
-            } else if (dateType === 'dateDead') {
-                relevantDate = c.deadAt ? new Date(c.deadAt) : null;
             }
             return relevantDate && relevantDate >= from;
         });
@@ -1488,8 +1472,6 @@ window.showReportData = () => {
                 relevantDate = c.dateIn ? new Date(c.dateIn) : null;
             } else if (dateType === 'dateSold') {
                 relevantDate = c.soldAt ? new Date(c.soldAt) : null;
-            } else if (dateType === 'dateDead') {
-                relevantDate = c.deadAt ? new Date(c.deadAt) : null;
             }
             return relevantDate && relevantDate <= to;
         });
@@ -1514,9 +1496,6 @@ window.showReportData = () => {
         } else if (dateType === 'dateSold') {
             dateA = a.soldAt ? new Date(a.soldAt) : new Date(0);
             dateB = b.soldAt ? new Date(b.soldAt) : new Date(0);
-        } else if (dateType === 'dateDead') {
-            dateA = a.deadAt ? new Date(a.deadAt) : new Date(0);
-            dateB = b.deadAt ? new Date(b.deadAt) : new Date(0);
         }
         return dateB - dateA;
     });
@@ -1534,7 +1513,6 @@ function displayReportResults(data, title) {
     const resultsDiv = document.getElementById('reportResults');
     const countSpan = document.getElementById('reportCount');
     const tableBody = document.getElementById('reportTableBody');
-    const toggleBtn = document.getElementById('reportToggleBtn');
 
     countSpan.textContent = `${data.length} record${data.length !== 1 ? 's' : ''} found`;
 
@@ -1563,7 +1541,6 @@ function displayReportResults(data, title) {
     }
 
     resultsDiv.style.display = 'block';
-    toggleBtn.textContent = 'Close';
     resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     showToast(`✅ Found ${data.length} record${data.length !== 1 ? 's' : ''}`, 'success');
@@ -1588,44 +1565,41 @@ window.downloadReportPDF = async () => {
     }
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape' }); // Use landscape for better fit
+    const doc = new jsPDF();
 
-    // Generate PDF with reduced margins
-    const leftMargin = 8;
-    const rightMargin = 8;
-    
+    // Generate PDF
     doc.setFontSize(20);
-    doc.text(title, leftMargin, 20);
+    doc.text(title, 20, 30);
 
-    doc.setFontSize(10);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, leftMargin, 32);
-    doc.text(`Total Records: ${data.length}`, leftMargin, 40);
+    doc.setFontSize(12);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 20, 45);
+    doc.text(`Total Records: ${data.length}`, 20, 55);
 
     // Show applied filters
-    let yPos = 48;
+    let yPos = 65;
     if (filters.fromDate || filters.toDate) {
-        const dateTypeLabel = filters.dateType === 'dateIn' ? 'Date In' : filters.dateType === 'dateSold' ? 'Date Sold' : 'Date Dead';
+        const dateTypeLabel = filters.dateType === 'dateIn' ? 'Date In' : 'Date Sold';
         let dateRange = `${dateTypeLabel} Range: `;
         if (filters.fromDate) dateRange += `From ${new Date(filters.fromDate).toLocaleDateString()}`;
         if (filters.toDate) dateRange += ` To ${new Date(filters.toDate).toLocaleDateString()}`;
-        doc.text(dateRange, leftMargin, yPos);
-        yPos += 6;
+        doc.text(dateRange, 20, yPos);
+        yPos += 10;
     }
     if (filters.locationFilter) {
-        doc.text(`Location Filter: ${filters.locationFilter}`, leftMargin, yPos);
-        yPos += 6;
+        doc.text(`Location Filter: ${filters.locationFilter}`, 20, yPos);
+        yPos += 10;
     }
     if (filters.typeFilter) {
-        doc.text(`Crab Type Filter: ${filters.typeFilter}`, leftMargin, yPos);  
-        yPos += 6;
+        doc.text(`Crab Type Filter: ${filters.typeFilter}`, 20, yPos);  
+        yPos += 10;
     }
 
-    // Table headers with adjusted column widths for landscape
+    // Table headers with adjusted column widths
     const headers = ['Box No.', 'Type', 'Status', 'Location', 'Date In', 'Date Sold', 'Origin Wt.', 'Current Wt.', 'Gender', 'Class'];
-    const colWidths = [18, 13, 18, 22, 22, 22, 16, 16, 14, 14]; // Adjusted for landscape
-    let xPos = leftMargin;
+    const colWidths = [20, 15, 20, 25, 25, 25, 18, 18, 15, 15]; // Adjusted widths for better fit
+    let xPos = 20;
 
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     headers.forEach((header, index) => {
         doc.text(header, xPos, yPos);
@@ -1633,13 +1607,13 @@ window.downloadReportPDF = async () => {
     });
 
     doc.setFont('helvetica', 'normal');
-    yPos += 6;
+    yPos += 8;
 
     // Table data with adjusted column positions
     data.forEach((crab, index) => {
-        if (yPos > 185) { // New page if needed (landscape height ~190mm)
+        if (yPos > 270) { // New page if needed
             doc.addPage();
-            yPos = 20;
+            yPos = 30;
         }
 
         const dateSold = crab.soldAt ? new Date(crab.soldAt).toLocaleDateString() : '—';
@@ -1658,18 +1632,18 @@ window.downloadReportPDF = async () => {
             crab.crabClass ? 'Class ' + crab.crabClass : '—'
         ];
 
-        xPos = leftMargin;
+        xPos = 20;
         rowData.forEach((cell, cellIndex) => {
             // Truncate long text if needed
             let cellText = String(cell);
-            if (cellText.length > 12 && colWidths[cellIndex] < 18) {
+            if (cellText.length > 12 && colWidths[cellIndex] < 20) {
                 cellText = cellText.substring(0, 10) + '...';
             }
-            doc.text(cellText, xPos, yPos, { maxWidth: colWidths[cellIndex] - 1 });
+            doc.text(cellText, xPos, yPos);
             xPos += colWidths[cellIndex];
         });
 
-        yPos += 5;
+        yPos += 6;
     });
 
     // Save the PDF
@@ -1679,8 +1653,9 @@ window.downloadReportPDF = async () => {
     showToast(`✅ PDF downloaded: ${data.length} records`, 'success');
 };
 
-//    HISTORY LOGIC
-
+/* ══════════════════════════════════════════════
+   HISTORY LOGIC
+══════════════════════════════════════════════ */
 let _currentPage=1, _filteredData=[], _perPage=15;
 
 function capH(s){ return s?s.charAt(0).toUpperCase()+s.slice(1):''; }
