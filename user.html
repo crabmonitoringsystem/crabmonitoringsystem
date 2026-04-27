@@ -414,7 +414,9 @@
             .drawer-overlay { display:block; }
             .mobile-drawer  { display:flex; }
             .main-container { padding:0 .75rem; margin:1rem auto; }
-            .stats-grid     { grid-template-columns:repeat(2,1fr); gap:.75rem; }
+            .stats-grid     { grid-template-columns:1fr 1fr; gap:.75rem; }
+            .stat-card      { min-width:0; width:100%; box-sizing:border-box; }
+            .stats-grid { width:100%; }
             .stats-grid-age { grid-template-columns:repeat(2,1fr); gap:.75rem; }
             .stat-card      { padding:1rem 1rem 2.2rem; }
             .stat-icon      { font-size:1.6rem; margin-bottom:.5rem; }
@@ -465,9 +467,10 @@
             .per-page-wrap  { font-size:.72rem; }
         }
         @media (max-width:420px) {
-            .stats-grid     { grid-template-columns:1fr 1fr; }
-            .stats-grid-age { grid-template-columns:1fr 1fr; }
-            .stat-value     { font-size:1.25rem; }
+            .stats-grid     { grid-template-columns:1fr; }
+            .stats-grid-age { grid-template-columns:1fr; }
+            .stat-card      { min-width:0; width:100%; margin-bottom:.7rem; }
+            .stat-value     { font-size:1.15rem; }
             .crab-grid .crab-card { flex:0 0 135px; min-width:135px; }
         }
 
@@ -563,7 +566,7 @@
             <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">
                 <span></span><span></span><span></span>
             </button>
-            <div class="app-logo"><img src="image.png" alt="Crab Logo"></div>
+            <div class="app-logo"><img src="Logo.jpg" alt="Crab Logo"></div>
             <div>
                 <div class="app-title">Crab Monitoring System</div>
                  <div class="app-subtitle">Recirculating Aquaculture System</div>
