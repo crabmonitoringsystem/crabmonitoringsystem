@@ -954,7 +954,7 @@ window.doSignIn = async () => {
     try {
         // Block admin login by username or role
         if(username.toLowerCase()==='admin'){
-            showErr('Admin login is not allowed on this page.');
+            showErr('Access denied. Only User can log in.');
             resetSigninBtn();
             return;
         }
@@ -965,7 +965,7 @@ window.doSignIn = async () => {
             if((u.username||'').toLowerCase()===username.toLowerCase() && u.password===password){
                 // Block if user is admin by username or role
                 if((u.username||'').toLowerCase()==='admin' || (u.role||'').toLowerCase()==='admin'){
-                    showErr('Admin login is not allowed on this page.');
+                    showErr('Access denied. Only User can log in.');
                     resetSigninBtn();
                     return;
                 }
