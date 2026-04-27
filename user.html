@@ -110,10 +110,10 @@
             box-shadow:0 2px 16px rgba(102,126,234,0.35);
         }
         .app-header-content { display:flex; align-items:center; gap:0.75rem; max-width:1400px; margin:0 auto; }
-        .app-logo { flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; }
-        .app-logo img { width:100%; height:100%; object-fit:contain; display:block; }
-        .crab-icon { display:inline-flex; align-items:center; justify-content:center; width:80px; height:100px; }
-        .crab-icon img { width:100%; height:100%; object-fit:contain; display:block; }
+        .app-logo { flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:80px; height:80px; border-radius:50%; overflow:hidden; }
+        .app-logo img { width:100%; height:100%; object-fit:cover; display:block; border-radius:50%; }
+        .crab-icon { display:inline-flex; align-items:center; justify-content:center; width:100px; height:100px; }
+        .crab-icon img { width:100%; height:100%; object-fit:cover; display:block; border-radius:50%; }
         .app-title { font-size:1.05rem; font-weight:700; line-height:1.2; }
         .app-subtitle { font-size:0.73rem; opacity:0.8; }
         .header-right { display:flex; align-items:center; gap:0.6rem; margin-left:auto; flex-wrap:nowrap; }
@@ -410,20 +410,34 @@
             .header-nav    { display:none !important; }
             .header-user   { display:none !important; }
             .logout-btn    { display:none !important; }
-            /* .app-subtitle  { display:none; }  Removed to always show subtitle */
+            .app-subtitle  { display:none; }
             .drawer-overlay { display:block; }
             .mobile-drawer  { display:flex; }
             .main-container { padding:0 .75rem; margin:1rem auto; }
-            .stats-grid     { grid-template-columns:1fr 1fr; gap:.75rem; }
-            .stat-card      { min-width:0; width:100%; box-sizing:border-box; }
-            .stats-grid { width:100%; }
-            .stats-grid-age { grid-template-columns:repeat(2,1fr); gap:.75rem; }
-            .stat-card      { padding:1rem 1rem 2.2rem; }
-            .stat-icon      { font-size:1.6rem; margin-bottom:.5rem; }
-            .stat-title     { font-size:.75rem; }
-            .stat-value     { font-size:1.4rem; }
-            .stat-change    { font-size:.72rem; }
-            .stat-card.age-days,.stat-card.age-week1,.stat-card.age-week2,.stat-card.age-week3plus,.stat-card.age-week4 { padding:.75rem .75rem 2rem; }
+            /* Inventory summary: single column for better mobile readability */
+            .stats-grid,
+            .stats-grid-age {
+                grid-template-columns:1fr;
+                gap:1.1rem;
+            }
+            .stat-card {
+                padding:1.1rem 1rem 2rem;
+                margin-bottom:0.5rem;
+                border-radius:16px;
+                font-size:1rem;
+                min-width:0;
+            }
+            .stat-icon      { font-size:1.7rem; margin-bottom:.5rem; }
+            .stat-title     { font-size:.85rem; }
+            .stat-value     { font-size:1.35rem; }
+            .stat-change    { font-size:.75rem; }
+            .stat-card.age-days,
+            .stat-card.age-week1,
+            .stat-card.age-week2,
+            .stat-card.age-week3plus,
+            .stat-card.age-week4 {
+                padding:.85rem .85rem 1.7rem;
+            }
             .crab-data-header { flex-direction:row; align-items:center; }
             .section-title  { font-size:1.05rem; }
             .add-crab-btn   { padding:.5rem .9rem; font-size:.82rem; }
@@ -465,13 +479,112 @@
             .page-btn       { min-width:30px; height:30px; font-size:.74rem; }
             .page-info      { font-size:.73rem; }
             .per-page-wrap  { font-size:.72rem; }
+
+            /* Mobile Summary Section Styles */
+            .mobile-summary-section {
+                display:block;
+                background:linear-gradient(135deg,#667eea,#764ba2);
+                border-radius:16px;
+                padding:1rem;
+                margin:1rem 0;
+                box-shadow:0 4px 20px rgba(102,126,234,0.3);
+            }
+            .mobile-summary-header {
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                color:white;
+                font-size:.9rem;
+                font-weight:600;
+                margin-bottom:.75rem;
+                padding-bottom:.5rem;
+                border-bottom:1px solid rgba(255,255,255,0.2);
+            }
+            .mobile-summary-time {
+                font-size:.7rem;
+                opacity:.85;
+                font-weight:400;
+            }
+            .mobile-summary-grid {
+                display:grid;
+                grid-template-columns:repeat(2,1fr);
+                gap:.75rem;
+            }
+            .mobile-summary-item {
+                background:rgba(255,255,255,0.95);
+                border-radius:12px;
+                padding:.75rem;
+                display:flex;
+                align-items:center;
+                gap:.6rem;
+                cursor:pointer;
+                transition:transform .2s,box-shadow .2s;
+                box-shadow:0 2px 8px rgba(0,0,0,0.1);
+            }
+            .mobile-summary-item:active {
+                transform:scale(0.98);
+            }
+            .mobile-summary-icon {
+                width:36px;
+                height:36px;
+                border-radius:50%;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                font-size:1.2rem;
+                background:#f0f0f0;
+                flex-shrink:0;
+            }
+            .mobile-summary-icon.healthy { background:#d4edda; }
+            .mobile-summary-icon.mortality { background:#f8d7da; }
+            .mobile-summary-icon.ready { background:#fff3cd; }
+            .mobile-summary-info {
+                flex:1;
+            }
+            .mobile-summary-label {
+                font-size:.7rem;
+                color:#666;
+                margin-bottom:.15rem;
+            }
+            .mobile-summary-value {
+                font-size:1.1rem;
+                font-weight:700;
+                color:#333;
+            }
+            .mobile-summary-swipe-hint {
+                text-align:center;
+                color:rgba(255,255,255,0.7);
+                font-size:.65rem;
+                margin-top:.75rem;
+                font-style:italic;
+            }
         }
+
+        /* Hide mobile summary on larger screens */
+        @media (min-width:769px) {
+            .mobile-summary-section { display:none !important; }
+        }
+
         @media (max-width:420px) {
-            .stats-grid     { grid-template-columns:1fr; }
-            .stats-grid-age { grid-template-columns:1fr; }
-            .stat-card      { min-width:0; width:100%; margin-bottom:.7rem; }
-            .stat-value     { font-size:1.15rem; }
+            .stats-grid     { grid-template-columns:1fr 1fr; }
+            .stats-grid-age { grid-template-columns:1fr 1fr; }
+            .stat-value     { font-size:1.25rem; }
             .crab-grid .crab-card { flex:0 0 135px; min-width:135px; }
+        }
+
+        /* Mobile Report Form Styles */
+        @media (max-width:768px) {
+            .report-form { padding:1rem; border-radius:12px; }
+            .report-row { flex-direction:column; gap:0.75rem; margin-bottom:0.75rem; }
+            .report-group { width:100%; }
+            .report-group label { font-size:0.8rem; margin-bottom:0.4rem; }
+            .report-group select, .report-group input { padding:0.85rem; font-size:0.95rem; border-radius:10px; }
+            .report-actions { width:100%; margin-top:0.5rem; }
+            .report-actions .btn { width:100%; padding:0.9rem; font-size:0.95rem; }
+            .report-results-header { flex-direction:column; gap:0.75rem; align-items:flex-start; padding:1rem; }
+            .report-results-actions { flex-direction:column; width:100%; gap:0.5rem; }
+            .report-results-actions .btn { width:100%; }
+            .report-count { font-size:0.85rem; }
         }
 
         /* Report Section Styles */
@@ -534,6 +647,7 @@
             <div class="brand">
                 <span class="crab-icon"><img src="image.png" alt="Crab Logo"></span>
                 <div class="brand-title">Crab Monitoring System</div>
+                <div class="brand-sub">Recirculating Aquaculture System</div>
                 <div class="brand-sub">Ingore-Baldoza Fisherfolks Association</div>
             </div>
             <div class="err-msg" id="errMsg"></div>
@@ -569,7 +683,6 @@
             <div class="app-logo"><img src="Logo.jpg" alt="Crab Logo"></div>
             <div>
                 <div class="app-title">Crab Monitoring System</div>
-                 <div class="app-subtitle">Recirculating Aquaculture System</div>
                 <div class="app-subtitle">Ingore-Baldoza Fisherfolks Association</div>
             </div> 
             <div class="header-right">
@@ -631,6 +744,46 @@
                 <div class="stat-card age-week3plus" onclick="showStatModal('age-week3plus')"><div class="stat-icon">🗓️</div><div class="stat-title">Week 3 (Days 21–27)</div><div class="stat-value" id="ageWeek3plusCount">—</div><div class="stat-change age-info" id="ageWeek3plusChange">Loading...</div></div>
                 <div class="stat-card age-week4" onclick="showStatModal('age-week4')"><div class="stat-icon">🗓️</div><div class="stat-title">Week 4+ (Day 28+)</div><div class="stat-value" id="ageWeek4Count">—</div><div class="stat-change age-info" id="ageWeek4Change">Loading...</div></div>
             </div>
+
+            <!-- MOBILE SUMMARY VIEW -->
+            <div class="mobile-summary-section" id="mobileSummary">
+                <div class="mobile-summary-header">
+                    <span>📊 Quick Stats</span>
+                    <span class="mobile-summary-time" id="mobileSummaryTime">Updated just now</span>
+                </div>
+                <div class="mobile-summary-grid">
+                    <div class="mobile-summary-item" onclick="showStatModal('total')">
+                        <div class="mobile-summary-icon">🦀</div>
+                        <div class="mobile-summary-info">
+                            <div class="mobile-summary-label">Total</div>
+                            <div class="mobile-summary-value" id="mobileTotalCrabs">—</div>
+                        </div>
+                    </div>
+                    <div class="mobile-summary-item" onclick="showStatModal('healthy')">
+                        <div class="mobile-summary-icon healthy">💚</div>
+                        <div class="mobile-summary-info">
+                            <div class="mobile-summary-label">Healthy</div>
+                            <div class="mobile-summary-value" id="mobileHealthyCrabs">—</div>
+                        </div>
+                    </div>
+                    <div class="mobile-summary-item" onclick="showStatModal('mortality')">
+                        <div class="mobile-summary-icon mortality">💀</div>
+                        <div class="mobile-summary-info">
+                            <div class="mobile-summary-label">Mortality</div>
+                            <div class="mobile-summary-value" id="mobileMortality">—</div>
+                        </div>
+                    </div>
+                    <div class="mobile-summary-item" onclick="showStatModal('sell')">
+                        <div class="mobile-summary-icon ready">💰</div>
+                        <div class="mobile-summary-info">
+                            <div class="mobile-summary-label">Ready</div>
+                            <div class="mobile-summary-value" id="mobileReadyCount">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mobile-summary-swipe-hint">← Swipe cards for more details →</div>
+            </div>
+
             <div class="crab-data-section">
                 <div class="crab-data-header">
                     <h2 class="section-title">🦀 Crab Data</h2>
@@ -862,7 +1015,7 @@
 <script type="module">
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getAnalytics }   from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
-import { getDatabase, ref, set, push, onValue, get, serverTimestamp }
+import { getDatabase, ref, set, push, onValue, get, serverTimestamp, onDisconnect }
     from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -921,20 +1074,28 @@ window.doSignIn = async () => {
     const btn = document.getElementById('signinBtn');
     btn.disabled=true; btn.innerHTML='<span class="btn-spin"></span>Signing in…';
     try {
-        if(username.toLowerCase()==='admin' && password==='Admin123'){
-            const session={username:'admin',name:'Administrator',role:'admin',loginTime:new Date().toISOString(),lastActive:Date.now()};
-            sessionStorage.setItem('crabMonitoringSession',JSON.stringify(session));
-            setLoading(true,'Welcome, Admin!','→ Redirecting…');
-            setTimeout(()=>{ setLoading(false); bootApp(session); },900); return;
+        // Block admin login by username or role
+        if(username.toLowerCase()==='admin'){
+            showErr('Admin login is not allowed on this page.');
+            resetSigninBtn();
+            return;
         }
         const snap = await get(ref(db,'users'));
         if(!snap.exists()){ showErr('No accounts found. Contact your administrator.'); resetSigninBtn(); return; }
         const users=snap.val(); let mKey=null, mUser=null;
         for(const [key,u] of Object.entries(users)){
-            if((u.username||'').toLowerCase()===username.toLowerCase() && u.password===password){ mKey=key; mUser=u; break; }
+            if((u.username||'').toLowerCase()===username.toLowerCase() && u.password===password){
+                // Block if user is admin by username or role
+                if((u.username||'').toLowerCase()==='admin' || (u.role||'').toLowerCase()==='admin'){
+                    showErr('Admin login is not allowed on this page.');
+                    resetSigninBtn();
+                    return;
+                }
+                mKey=key; mUser=u; break;
+            }
         }
         if(!mUser){ showErr('Incorrect username or password.'); shakeFields(); resetSigninBtn(); return; }
-        await set(ref(db,`users/${mKey}`),{...mUser,lastLogin:Date.now(),lastActive:Date.now()});
+        await set(ref(db,`users/${mKey}`),{...mUser,lastLogin:Date.now(),lastActive:Date.now(),isLoggedIn:true});
         const fullName=[mUser.firstName||'',mUser.lastName||''].join(' ').trim()||mUser.name||mUser.username;
         const role=mUser.role||'monitor1';
         const session={username:mUser.username,name:fullName,role,loginTime:new Date().toISOString(),lastActive:Date.now(),_fbKey:mKey};
@@ -1171,6 +1332,18 @@ function updateStats(crabs,deleted){
     document.getElementById('ageWeek3plusChange').textContent=aW3===0?'No crabs in Week 3':`${aW3} crab${aW3!==1?'s':''} in Week 3`;
     document.getElementById('ageWeek4Count').textContent=aW4;
     document.getElementById('ageWeek4Change').textContent=aW4===0?'No crabs in Week 4+':`${aW4} crab${aW4!==1?'s':''} in Week 4+`;
+
+    // Update mobile summary
+    const mobileTotalEl=document.getElementById('mobileTotalCrabs');
+    const mobileHealthyEl=document.getElementById('mobileHealthyCrabs');
+    const mobileMortalityEl=document.getElementById('mobileMortality');
+    const mobileReadyEl=document.getElementById('mobileReadyCount');
+    const mobileTimeEl=document.getElementById('mobileSummaryTime');
+    if(mobileTotalEl) mobileTotalEl.textContent=total;
+    if(mobileHealthyEl) mobileHealthyEl.textContent=healthy;
+    if(mobileMortalityEl) mobileMortalityEl.textContent=dead;
+    if(mobileReadyEl) mobileReadyEl.textContent=rts;
+    if(mobileTimeEl) mobileTimeEl.textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 }
 
 function renderObservations(crabs){
@@ -1301,14 +1474,25 @@ document.getElementById('crabDataForm').addEventListener('submit', async e=>{
         const{db,ref,set,push,get}=window._fb;
 
         if(key){
-            const existingSnap=await get(ref(db,`crabs/${key}`));
-            const existing=existingSnap.exists()?existingSnap.val():{};
+            let existing=window._allCrabs.find(c=>c.id===key);
+            if(!existing){ const existingSnap=await get(ref(db,`crabs/${key}`)); existing=existingSnap.exists()?existingSnap.val():{}; }
             const prevDead=existing.weeklyStatus==='Dead';
             const changelog = buildChangelog(existing, baseData);
+            const prevUH = Array.isArray(existing.updateHistory) ? existing.updateHistory : (existing.updateHistory ? Object.values(existing.updateHistory) : []);
+            const updateEntry = {
+                ts: now,
+                by: currentUser,
+                currentWeight: baseData.currentWeight,
+                weeklyStatus: baseData.weeklyStatus,
+                location: baseData.location,
+                crabClass: baseData.crabClass,
+                notes: baseData.notes
+            };
             const data={...baseData,
                 createdAt:existing.createdAt||existing.timestamp||now,
                 addedBy:existing.addedBy||existing.recordedBy||currentUser,
                 updatedAt:now, updatedBy:currentUser,
+                updateHistory: [...prevUH, updateEntry],
                 ...(isDead?{diedAt:prevDead?(existing.diedAt||now):now, diedBy:prevDead?(existing.diedBy||currentUser):currentUser}:{})
             };
 
@@ -1813,26 +1997,33 @@ window.exportCSV=()=>{
 // ==== HEARTBEAT SYSTEM ====
 let _heartbeatInterval = null;
 const HEARTBEAT_INTERVAL = 30000;
+let _disconnectSetup = false;
+
+function setupPresence(session) {
+    if (!session._fbKey || session.username === 'admin' || _disconnectSetup) return;
+    const { db } = window._fb;
+    const userRef = ref(db, `users/${session._fbKey}`);
+    onDisconnect(userRef).update({ isLoggedIn: false, lastActive: serverTimestamp() });
+    _disconnectSetup = true;
+}
 
 function startHeartbeat() {
     if (_heartbeatInterval) clearInterval(_heartbeatInterval);
+    const session = JSON.parse(sessionStorage.getItem('crabMonitoringSession') || '{}');
+    setupPresence(session);
     updateHeartbeat();
     _heartbeatInterval = setInterval(updateHeartbeat, HEARTBEAT_INTERVAL);
 }
 
 function updateHeartbeat() {
     const session = JSON.parse(sessionStorage.getItem('crabMonitoringSession') || '{}');
-    if (!session.username || session.username === 'admin') return;
-    const { db, ref, get, set } = window._fb;
-    get(ref(db, 'users')).then(snap => {
+    if (!session._fbKey || !session.username || session.username === 'admin') return;
+    const { db, ref, set, get } = window._fb;
+    const userRef = ref(db, `users/${session._fbKey}`);
+    get(userRef).then(snap => {
         if (snap.exists()) {
-            const users = snap.val();
-            for (const [key, user] of Object.entries(users)) {
-                if (user.username === session.username) {
-                    set(ref(db, `users/${key}`), { ...user, isLoggedIn: true, lastActive: Date.now() });
-                    break;
-                }
-            }
+            const user = snap.val();
+            set(userRef, { ...user, isLoggedIn: true, lastActive: Date.now() });
         }
     }).catch(err => console.error('Heartbeat update failed:', err));
 }
@@ -1840,17 +2031,13 @@ function updateHeartbeat() {
 function stopHeartbeat() {
     if (_heartbeatInterval) { clearInterval(_heartbeatInterval); _heartbeatInterval = null; }
     const session = JSON.parse(sessionStorage.getItem('crabMonitoringSession') || '{}');
-    if (session.username && session.username !== 'admin') {
-        const { db, ref, get, set } = window._fb;
-        get(ref(db, 'users')).then(snap => {
+    if (session._fbKey && session.username && session.username !== 'admin') {
+        const { db, ref, set, get } = window._fb;
+        const userRef = ref(db, `users/${session._fbKey}`);
+        get(userRef).then(snap => {
             if (snap.exists()) {
-                const users = snap.val();
-                for (const [key, user] of Object.entries(users)) {
-                    if (user.username === session.username) {
-                        set(ref(db, `users/${key}`), { ...user, isLoggedIn: false, lastActive: Date.now() });
-                        break;
-                    }
-                }
+                const user = snap.val();
+                set(userRef, { ...user, isLoggedIn: false, lastActive: Date.now() });
             }
         }).catch(err => console.error('Heartbeat logout failed:', err));
     }
@@ -1872,3 +2059,5 @@ document.addEventListener('visibilitychange', () => {
 
 window.addEventListener('beforeunload', () => { stopHeartbeat(); });
 </script>
+Displaying user.html.
+Displaying user.html.
