@@ -3568,6 +3568,7 @@ const observer = new MutationObserver((mutations) => {
 // Start observing the auth overlay
 const authOverlay = document.getElementById('authOverlay');
 if (authOverlay) {
+  
   observer.observe(authOverlay, { attributes: true });
 }
 </script>
