@@ -1150,6 +1150,45 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .header { display:none !important; }
 body.authenticated .main-container { display:block !important; }
 body.authenticated .header { display:block !important; }
+
+/* Inventory Summary Styles */
+.inventory-summary-card { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 1.5rem; }
+.inventory-form { display: flex; flex-direction: column; gap: 1rem; }
+.inventory-form-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; align-items: end; }
+.inventory-field { display: flex; flex-direction: column; gap: 0.4rem; }
+.inventory-field label { font-size: 0.78rem; font-weight: 600; color: #555; }
+.inventory-field input, .inventory-field select { padding: 0.65rem 0.85rem; border: 2px solid #e1e1e1; border-radius: 8px; font-size: 0.85rem; font-family: inherit; outline: none; transition: all 0.3s; }
+.inventory-field input:focus, .inventory-field select:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+.inventory-btn-field { grid-column: span 1; }
+.inventory-btn-field button { width: 100%; padding: 0.75rem 1rem; font-size: 0.9rem; }
+.inventory-results { background: #f8f9fa; border-radius: 8px; padding: 1rem; }
+.inventory-result-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-bottom: 1px solid #e9ecef; }
+.inventory-result-item:last-child { border-bottom: none; }
+.inventory-result-label { font-weight: 600; color: #444; }
+.inventory-result-value { font-weight: 700; color: #667eea; font-size: 1.1rem; }
+
+/* Inventory Results Table */
+.inventory-results-card { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); overflow: hidden; }
+.inventory-results-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+.inventory-results-title { font-weight: 600; font-size: 1rem; }
+.inventory-results-actions { display: flex; align-items: center; gap: 1rem; }
+.inventory-results-count { font-size: 0.85rem; opacity: 0.9; }
+.inventory-table-wrap { overflow-x: auto; max-height: 500px; overflow-y: auto; }
+.inventory-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.inventory-table thead th { background: #f8f9fa; padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: #555; border-bottom: 2px solid #e9ecef; position: sticky; top: 0; z-index: 10; }
+.inventory-table tbody td { padding: 0.65rem 1rem; border-bottom: 1px solid #f0f0f0; }
+.inventory-table tbody tr:hover { background: #f8f9fa; }
+.inv-date { font-size: 0.78rem; color: #666; }
+.inv-num { font-weight: 500; }
+@media (max-width: 768px) {
+  .inventory-form-row { grid-template-columns: 1fr 1fr; }
+  .inventory-btn-field { grid-column: span 1; }
+  .inventory-results-header { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+  .inventory-table-wrap { max-height: 400px; }
+}
+@media (max-width: 480px) {
+  .inventory-form-row { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
@@ -1310,6 +1349,61 @@ body.authenticated .header { display:block !important; }
       <div class="card"><div class="card-header"><span>Recent Activity</span><span class="card-header-sm" id="lastUpdated">Live</span></div><div class="card-content" style="max-height:400px;overflow-y:auto;" id="activityFeed"><div class="empty-state"><div class="empty-icon">⏳</div>Loading...</div></div></div>
       <div class="card"><div class="card-header"><span>Crab Type Breakdown</span></div><div class="card-content" id="typeBreakdown"><div class="empty-state"><div class="empty-icon">⏳</div>Loading...</div></div></div>
     </div>
+
+    <!-- INVENTORY SUMMARY -->
+    <div class="stats-section-label">📊 Generate Report</div>
+    <div class="inventory-summary-card">
+      <div class="inventory-form">
+        <div class="inventory-form-row">
+          <div class="inventory-field">
+            <label>Report Type</label>
+            <select id="invReportType">
+              <option value="all">📋 All</option>
+              <option value="sold">🏷️ Sold</option>
+              <option value="dead">💀 Dead</option>
+              <option value="healthy">💚 Healthy</option>
+              <option value="readytosell">💰 Ready to Sell</option>
+            </select>
+          </div>
+          <div class="inventory-field">
+            <label>Date Type</label>
+            <select id="invDateType">
+              <option value="dateIn">Date In</option>
+              <option value="createdAt">Created Date</option>
+              <option value="soldAt">Sold Date</option>
+              <option value="diedAt">Death Date</option>
+            </select>
+          </div>
+          <div class="inventory-field">
+            <label>From Date</label>
+            <input type="date" id="invFromDate">
+          </div>
+          <div class="inventory-field">
+            <label>To Date</label>
+            <input type="date" id="invToDate">
+          </div>
+        </div>
+        <div class="inventory-form-row">
+          <div class="inventory-field">
+            <label>Location (Optional)</label>
+            <input type="text" id="invLocation" placeholder="Filter by location...">
+          </div>
+          <div class="inventory-field">
+            <label>Crab Type (Optional)</label>
+            <select id="invCrabType">
+              <option value="">All Types</option>
+              <option value="SS">SS – King Crab</option>
+              <option value="SO">SO – Orange/Red</option>
+              <option value="ST">ST – Purple</option>
+            </select>
+          </div>
+          <div class="inventory-field inventory-btn-field">
+            <button class="btn btn-primary" onclick="generateInventorySummary()">👁️ Show Data</button>
+          </div>
+        </div>
+      </div>
+      <div id="inventoryResults" style="margin-top:1rem;"></div>
+    </div>
   </div>
 
   <!-- HISTORY -->
@@ -1422,7 +1516,7 @@ body.authenticated .header { display:block !important; }
 </div>
 
 <!-- STAT DETAIL MODAL -->
-<div id="statDetailModal" class="modal"><div class="modal-content wide"><div class="modal-hd"><div class="modal-title" id="statModalTitle">Detail</div><button class="close" onclick="closeModal('statDetailModal')">&times;</button></div><div class="modal-search"><input type="text" id="statDetailSearch" placeholder="🔍 Search by Box No., Type, Location, Gender..." oninput="filterStatDetail()"></div><div class="modal-scroll" id="statDetailBody"><div class="empty-state">Loading...</div></div></div></div>
+<div id="statDetailModal" class="modal"><div class="modal-content wide"><div class="modal-hd"><div class="modal-title" id="statModalTitle">Detail</div><button class="close" onclick="closeModal('statDetailModal')">&times;</button></div><div class="modal-search" style="display:flex;gap:0.5rem;"><input type="text" id="statDetailSearch" placeholder="🔍 Search by Box No., Type, Location, Gender..." oninput="filterStatDetail()" style="flex:1;"><select id="statDetailMonthFilter" onchange="filterStatDetail()" style="padding:0.3rem 0.5rem;border:1px solid #ddd;border-radius:4px;font-size:0.75rem;cursor:pointer;"><option value="">All Months</option></select></div><div class="modal-scroll" id="statDetailBody"><div class="empty-state">Loading...</div></div></div></div>
 
 <!-- ADMIN DETAIL MODAL -->
 <div id="adminDetailModal" class="modal">
@@ -1688,7 +1782,7 @@ function doLogin(){
       window._fb.get(window._fb.ref(window._fb.db,'users')).then(snap=>{
         let found=false;
         if(snap.exists()){
-          Object.values(snap.val()).forEach(usr=>{
+          Object.entries(snap.val()).forEach(([key,usr])=>{
             if(usr.username===u&&usr.password===p){
               found=true;
               if(usr.role!=='admin'){
@@ -1696,7 +1790,7 @@ function doLogin(){
                 btn.disabled=false;btn.textContent='🔐 Login to Dashboard';
                 return;
               }
-              completeLogin({username:usr.username,name:usr.name||usr.username,role:usr.role||'viewer',avatarEmoji:usr.avatarEmoji,avatarColor:usr.avatarColor,profilePictureUrl:usr.profilePictureUrl});
+              completeLogin({username:usr.username,name:usr.name||usr.username,role:usr.role||'viewer',avatarEmoji:usr.avatarEmoji,avatarColor:usr.avatarColor,profilePictureUrl:usr.profilePictureUrl,_fbKey:key});
             }
           });
         }
@@ -1720,7 +1814,7 @@ function completeLogin(session){
     setTimeout(()=>{ if(window._applyAvatarToEl){ _applyAvatarToEl(document.getElementById('headerProfileAvatar'),session); } },800);
     setTimeout(()=>{ if(window._applyAvatarToEl){ _applyAvatarToEl(document.getElementById('profileAvatar'),session); } },800);
     // Mark user as logged in (Online) in Firebase - delay to ensure users are loaded
-    setTimeout(()=>{ _setLoginFlag(session.username, true); }, 1000);
+    setTimeout(()=>{ _setLoginFlag(session.username, true); setupAdminPresence(session); }, 1000);
     startHeartbeat();
     showToast('Welcome back, '+session.name+'! 🦀','success');
     if(typeof refreshOverview==='function') setTimeout(refreshOverview,500);
@@ -1902,12 +1996,12 @@ window.doLogout=()=>{
 <!-- FIREBASE + MAIN LOGIC -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, get } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+import { getDatabase, ref, set, push, onValue, get, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 const FC={apiKey:"AIzaSyCL2YkjBwcQR642R9l0AXuX5ayczH2q1EM",authDomain:"crabmonitoringsystem-ab2ea.firebaseapp.com",databaseURL:"https://crabmonitoringsystem-ab2ea-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"crabmonitoringsystem-ab2ea",storageBucket:"crabmonitoringsystem-ab2ea.firebasestorage.app",messagingSenderId:"910140962027",appId:"1:910140962027:web:ec86956350b4ec28567aae"};
 const app=initializeApp(FC);
 const db=getDatabase(app);
-window._fb={db,ref,set,push,get};
+window._fb={db,ref,set,push,get,onDisconnect,serverTimestamp};
 
 onValue(ref(db,'.info/connected'),snap=>{
   const dot=document.getElementById('statusDot'),lbl=document.getElementById('statusLabel');
@@ -1941,7 +2035,7 @@ function deriveAction(c,isDeleted){
 }
 const ACTION_CONFIG={'Added':{icon:'➕',iconCls:'fi-added',badgeCls:'fab-added',label:'Added'},'Updated':{icon:'✏️',iconCls:'fi-updated',badgeCls:'fab-updated',label:'Updated'},'Dead':{icon:'💀',iconCls:'fi-dead',badgeCls:'fab-dead',label:'Dead'},'Ready to Sell':{icon:'💰',iconCls:'fi-sell',badgeCls:'fab-sell',label:'Ready to Sell'},'Sold':{icon:'🏷️',iconCls:'fi-sold',badgeCls:'fab-sold',label:'Sold'},'Removed':{icon:'🗑️',iconCls:'fi-removed',badgeCls:'fab-removed',label:'Removed'}};
 
-const ONLINE_THRESHOLD = 1800000; // 30 minutes - user is online if lastActive within this threshold
+const ONLINE_THRESHOLD = 1200000; // 20 minutes - user is online if lastActive within this threshold
 
 // Called whenever any data source updates — keeps Records and Top Contributors instant
 function reRenderAll(){
@@ -1964,10 +2058,14 @@ onValue(ref(db,'crabs'),snap=>{
   window._allCrabs=data?Object.entries(data).map(([id,v])=>({id,...v})):[];
   // Also maintain _crabs for compatibility with existing admin functions
   window._crabs = window._allCrabs;
-  refreshOverview();renderActivityFeed();
+  refreshOverview();renderActivityFeed();filterHistory();
   document.getElementById('lastUpdated').textContent=`Updated ${new Date().toLocaleTimeString()}`;
   // Immediately update Records count and Top Contributors when crab data arrives
   reRenderAll();
+  // Re-evaluate user online/offline status every minute based on local clock
+  if (!window._userStatusInterval) {
+    window._userStatusInterval = setInterval(() => { if (typeof renderUsers === 'function') renderUsers(); }, 60000);
+  }
 });
 onValue(ref(db,'deletedCrabs'),snap=>{
   const data=snap.val();
@@ -2076,9 +2174,60 @@ window.openStatModal=type=>{
   window._statCrabs=filtered;window._statType=type;
   document.getElementById('statModalTitle').textContent=`${title} — ${filtered.length} crabs`;
   document.getElementById('statDetailSearch').value='';
+  // Populate month filter
+  populateStatDetailMonthFilter(filtered);
   renderStatDetail(filtered,type);
   openModal('statDetailModal');
 };
+
+// Populate month filter in stat detail modal
+function populateStatDetailMonthFilter(crabs){
+  try{
+    const select = document.getElementById('statDetailMonthFilter');
+    if (!select) return;
+    
+    const months = new Set();
+    crabs.forEach(c => {
+      try{
+        const dateFields = [c.createdAt, c.addedAt, c.timestamp, c.soldAt, c.diedAt];
+        if(c.dateIn){
+          try{
+            const dateInTs = new Date(c.dateIn + 'T00:00:00').getTime();
+            if(!isNaN(dateInTs)){
+              dateFields.push(dateInTs);
+            }
+          }catch(e){}
+        }
+        dateFields.forEach(ts => {
+          if(ts && !isNaN(ts)){
+            try{
+              const date = new Date(ts);
+              const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+              months.add(monthKey);
+            }catch(e){}
+          }
+        });
+      }catch(e){}
+    });
+    
+    const sortedMonths = Array.from(months).sort((a, b) => b.localeCompare(a));
+    
+    select.innerHTML = '<option value="">All Months</option>';
+    sortedMonths.forEach(monthKey => {
+      try{
+        const [year, monthNum] = monthKey.split('-');
+        const date = new Date(parseInt(year), parseInt(monthNum) - 1);
+        const monthName = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const option = document.createElement('option');
+        option.value = monthKey;
+        option.textContent = monthName;
+        select.appendChild(option);
+      }catch(e){}
+    });
+  }catch(e){
+    console.error('Error populating month filter:', e);
+  }
+}
 
 function renderStatDetail(crabs,type){
   const body=document.getElementById('statDetailBody');
@@ -2094,14 +2243,184 @@ function renderStatDetail(crabs,type){
 
 window.filterStatDetail=()=>{
   const q=(document.getElementById('statDetailSearch')?.value||'').toLowerCase();
-  const f=(window._statCrabs||[]).filter(c=>{const a=ageLabel(computeAgeDays(c.dateIn));return(c.boxNo||c.id||'').toLowerCase().includes(q)||(c.crabType||'').toLowerCase().includes(q)||(c.location||'').toLowerCase().includes(q)||(c.gender||'').toLowerCase().includes(q)||(c.weeklyStatus||'').toLowerCase().includes(q)||a.text.toLowerCase().includes(q);});
+  const monthFilter=document.getElementById('statDetailMonthFilter')?.value||'';
+  let f=(window._statCrabs||[]).filter(c=>{const a=ageLabel(computeAgeDays(c.dateIn));return(c.boxNo||c.id||'').toLowerCase().includes(q)||(c.crabType||'').toLowerCase().includes(q)||(c.location||'').toLowerCase().includes(q)||(c.gender||'').toLowerCase().includes(q)||(c.weeklyStatus||'').toLowerCase().includes(q)||a.text.toLowerCase().includes(q);});
+  
+  // Apply month filter
+  if(monthFilter){
+    const [year, month] = monthFilter.split('-').map(Number);
+    const targetMonth = month - 1;
+    const targetYear = year;
+    
+    const isTargetMonth = (timestamp) => {
+      if (!timestamp) return false;
+      try{
+        const date = new Date(timestamp);
+        return date.getMonth() === targetMonth && date.getFullYear() === targetYear;
+      }catch(e){
+        return false;
+      }
+    };
+    
+    f = f.filter(c => isTargetMonth(c.createdAt || c.addedAt || c.timestamp || c.soldAt || c.diedAt || (c.dateIn ? new Date(c.dateIn + 'T00:00:00').getTime() : null)));
+  }
+  
+  // Update modal title with filtered count
+  const titleEl = document.getElementById('statModalTitle');
+  const originalTitle = titleEl.textContent.split(' — ')[0];
+  titleEl.textContent = `${originalTitle} — ${f.length} crabs`;
+  
   renderStatDetail(f,window._statType);
+};
+
+// Generate Inventory Summary
+window.generateInventorySummary = function(){
+  try{
+    const reportType = document.getElementById('invReportType')?.value || 'all';
+    const dateType = document.getElementById('invDateType')?.value || 'dateIn';
+    const fromDate = document.getElementById('invFromDate')?.value;
+    const toDate = document.getElementById('invToDate')?.value;
+    const location = (document.getElementById('invLocation')?.value || '').toLowerCase().trim();
+    const crabType = document.getElementById('invCrabType')?.value || '';
+    
+    const crabs = window._allCrabs || [];
+    const deleted = window._deletedCrabs || [];
+    let allCrabs = [...crabs, ...deleted];
+    
+    // Filter by report type
+    if(reportType !== 'all'){
+      if(reportType === 'sold'){
+        allCrabs = deleted.filter(c => c.weeklyStatus === 'Sold');
+      } else if(reportType === 'dead'){
+        allCrabs = deleted.filter(c => c.weeklyStatus === 'Dead');
+      } else if(reportType === 'healthy'){
+        allCrabs = crabs.filter(c => (c.weeklyStatus||'').toLowerCase() === 'healthy');
+      } else if(reportType === 'readytosell'){
+        allCrabs = crabs.filter(c => c.weeklyStatus === 'Ready to Sell');
+      }
+    }
+    
+    // Filter by date range
+    if(fromDate || toDate){
+      const fromTs = fromDate ? new Date(fromDate + 'T00:00:00').getTime() : 0;
+      const toTs = toDate ? new Date(toDate + 'T23:59:59').getTime() : Infinity;
+      
+      allCrabs = allCrabs.filter(c => {
+        let dateVal;
+        if(dateType === 'dateIn' && c.dateIn){
+          dateVal = new Date(c.dateIn + 'T00:00:00').getTime();
+        } else if(dateType === 'createdAt' && c.createdAt){
+          dateVal = c.createdAt;
+        } else if(dateType === 'soldAt' && c.soldAt){
+          dateVal = c.soldAt;
+        } else if(dateType === 'diedAt' && c.diedAt){
+          dateVal = c.diedAt;
+        } else {
+          // Fallback to timestamp or dateIn
+          dateVal = c.timestamp || (c.dateIn ? new Date(c.dateIn + 'T00:00:00').getTime() : null);
+        }
+        return dateVal && dateVal >= fromTs && dateVal <= toTs;
+      });
+    }
+    
+    // Filter by location
+    if(location){
+      allCrabs = allCrabs.filter(c => (c.location||'').toLowerCase().includes(location));
+    }
+    
+    // Filter by crab type
+    if(crabType){
+      allCrabs = allCrabs.filter(c => c.crabType === crabType);
+    }
+    
+    // Generate results table
+    const totalCount = allCrabs.length;
+    
+    if(totalCount === 0){
+      document.getElementById('inventoryResults').innerHTML = '<div class="inventory-results"><div class="empty-state" style="padding:2rem;"><div class="empty-icon">📭</div>No records found for the selected filters</div></div>';
+      return;
+    }
+    
+    const formatDate = (dateVal) => {
+      if(!dateVal) return '—';
+      try{
+        if(typeof dateVal === 'number'){
+          return new Date(dateVal).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+        }
+        const d = new Date(dateVal + 'T00:00:00');
+        if(isNaN(d.getTime())) return dateVal;
+        return d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+      }catch(e){ return dateVal; }
+    };
+    
+    const rows = allCrabs.map(c => {
+      const status = (c.weeklyStatus||'').toLowerCase().replace(/\s+/g,'');
+      let exitDate = '—';
+      if(status === 'sold' && c.soldAt) exitDate = formatDate(c.soldAt);
+      else if(status === 'dead' && c.diedAt) exitDate = formatDate(c.diedAt);
+      else if((status === 'removed' || !status) && c.removedAt) exitDate = formatDate(c.removedAt);
+      return `<tr>
+        <td class="bold">${c.boxNo||c.id||'—'}</td>
+        <td>${c.crabType||'—'}</td>
+        <td><span class="crab-status status-${status}">${cap(c.weeklyStatus||'—')}</span></td>
+        <td>${c.location||'—'}</td>
+        <td class="inv-date">${c.dateIn||'—'}</td>
+        <td class="inv-date">${exitDate}</td>
+        <td class="inv-num">${c.originWeight!=null?c.originWeight+'g':'—'}</td>
+        <td class="inv-num">${c.currentWeight!=null?c.currentWeight+'g':'—'}</td>
+        <td>${cap(c.gender||'—')}</td>
+        <td>${c.crabClass?'Class '+c.crabClass:'—'}</td>
+      </tr>`;
+    }).join('');
+    
+    const resultsHtml = `
+      <div class="inventory-results-card">
+        <div class="inventory-results-header">
+          <span class="inventory-results-title">Report Results</span>
+          <div class="inventory-results-actions">
+            <span class="inventory-results-count">${totalCount} record${totalCount!==1?'s':''} found</span>
+            <button class="btn btn-secondary" onclick="clearInventoryResults()" style="padding:0.5rem 1rem;font-size:0.8rem;">Close</button>
+          </div>
+        </div>
+        <div class="inventory-table-wrap">
+          <table class="inventory-table">
+            <thead>
+              <tr>
+                <th>Box No.</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Location</th>
+                <th>Date In</th>
+                <th>Date Out</th>
+                <th>Origin Wt.</th>
+                <th>Current Wt.</th>
+                <th>Gender</th>
+                <th>Class</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    
+    document.getElementById('inventoryResults').innerHTML = resultsHtml;
+    
+  }catch(e){
+    console.error('Error generating inventory summary:', e);
+    document.getElementById('inventoryResults').innerHTML = '<div style="color:#dc3545;padding:1rem;">Error generating summary. Please try again.</div>';
+  }
+};
+
+window.clearInventoryResults = function(){
+  document.getElementById('inventoryResults').innerHTML = '';
 };
 
 window.filterHistory=()=>{
   const q=(document.getElementById('histSearch')?.value||'').toLowerCase();
   const actionFilter=document.getElementById('histAction')?.value||'';
   const typeFilter=document.getElementById('histType')?.value||'';
+  const monthFilter=document.getElementById('histMonth')?.value||'';
   const sort=document.getElementById('histSort')?.value||'newest';
   
   // Create event-based history (same logic as history.html)
@@ -2111,19 +2430,52 @@ window.filterHistory=()=>{
   Object.entries(window._allCrabs||{}).forEach(([id,v])=>{
     const base={id,...v};
     const addedTs = v.createdAt||v.addedAt||v.timestamp||0;
-    events.push({...base,_eventAction:'added',_eventTs:addedTs,_eventBy:v.addedBy||v.recordedBy||'—'});
-    if(v.updatedAt && Math.abs(v.updatedAt - addedTs) > 1000){
+    // Added event: show original data (weight at time of adding)
+    const addedBase = {...base, currentWeight: v.originWeight != null ? v.originWeight : v.currentWeight};
+    events.push({...addedBase,_eventAction:'added',_eventTs:addedTs,_eventBy:v.addedBy||v.recordedBy||'—'});
+    // Emit every update from updateHistory so 2nd, 3rd, 4th edits all appear
+    const uhRaw = v.updateHistory;
+    const uh = Array.isArray(uhRaw) ? uhRaw : (uhRaw ? Object.values(uhRaw) : []);
+    if(uh.length){
+      uh.forEach((entry)=>{
+        const updateBase = {
+          ...base,
+          currentWeight: entry.currentWeight != null ? entry.currentWeight : base.currentWeight,
+          weeklyStatus: entry.weeklyStatus != null ? entry.weeklyStatus : base.weeklyStatus,
+          location: entry.location != null ? entry.location : base.location,
+          crabClass: entry.crabClass != null ? entry.crabClass : base.crabClass,
+          notes: entry.notes != null ? entry.notes : base.notes
+        };
+        events.push({...updateBase,_eventAction:'updated',_eventTs:entry.ts||v.updatedAt||0,_eventBy:entry.by||v.updatedBy||'—'});
+      });
+    } else if(v.updatedAt && Math.abs(v.updatedAt - addedTs) > 1000){
       events.push({...base,_eventAction:'updated',_eventTs:v.updatedAt,_eventBy:v.updatedBy||'—'});
     }
   });
-  
-  // Process deleted crabs
+
+  // Process deleted crabs - show all updates, then final event (sold/dead/removed)
   Object.entries(window._deletedCrabs||{}).forEach(([id,v])=>{
     const base={id,...v};
     const addedTs = v.createdAt||v.addedAt||v.timestamp||0;
-    events.push({...base,_eventAction:'added',_eventTs:addedTs,_eventBy:v.addedBy||v.recordedBy||'—'});
-    if(v.updatedAt && Math.abs(v.updatedAt - addedTs) > 1000 &&
-       v.updatedAt !== v.soldAt && v.updatedAt !== v.diedAt && v.updatedAt !== v.removedAt){
+    // Added event
+    const addedBase = {...base, currentWeight: v.originWeight != null ? v.originWeight : v.currentWeight};
+    events.push({...addedBase,_eventAction:'added',_eventTs:addedTs,_eventBy:v.addedBy||v.recordedBy||'—'});
+    // Update events from history
+    const uhRaw = v.updateHistory;
+    const uh = Array.isArray(uhRaw) ? uhRaw : (uhRaw ? Object.values(uhRaw) : []);
+    if(uh.length){
+      uh.forEach((entry, idx)=>{
+        const updateBase = {
+          ...base,
+          currentWeight: entry.currentWeight != null ? entry.currentWeight : base.currentWeight,
+          weeklyStatus: entry.weeklyStatus != null ? entry.weeklyStatus : base.weeklyStatus,
+          location: entry.location != null ? entry.location : base.location,
+          crabClass: entry.crabClass != null ? entry.crabClass : base.crabClass,
+          notes: entry.notes != null ? entry.notes : base.notes
+        };
+        events.push({...updateBase,_eventAction:'updated',_eventTs:entry.ts||v.updatedAt||0,_eventBy:entry.by||v.updatedBy||'—'});
+      });
+    } else if(v.updatedAt && Math.abs(v.updatedAt - addedTs) > 1000){
       events.push({...base,_eventAction:'updated',_eventTs:v.updatedAt,_eventBy:v.updatedBy||'—'});
     }
     const st=(v.weeklyStatus||'').toLowerCase().replace(/\s+/g,'');
@@ -2140,6 +2492,20 @@ window.filterHistory=()=>{
   if(q)data=data.filter(c=>(c.boxNo||c.id||'').toLowerCase().includes(q)||(c.crabType||'').toLowerCase().includes(q)||(c.location||'').toLowerCase().includes(q)||c._eventAction.toLowerCase().includes(q)||(c.weeklyStatus||'').toLowerCase().includes(q)||(c.recordedBy||c.addedBy||'').toLowerCase().includes(q)||c._eventBy.toLowerCase().includes(q));
   if(actionFilter)data=data.filter(c=>c._eventAction===actionFilter.toLowerCase());
   if(typeFilter)data=data.filter(c=>(c.crabType||'')===typeFilter);
+  
+  // Month filter using action dates
+  if(monthFilter){
+    const [year, month] = monthFilter.split('-').map(Number);
+    const targetMonth = month - 1;
+    const targetYear = year;
+    data=data.filter(c=>{
+      const ts=c._eventTs||c.timestamp||0;
+      if(!ts)return false;
+      const date=new Date(ts);
+      return date.getMonth()===targetMonth && date.getFullYear()===targetYear;
+    });
+  }
+  
   const getTs=c=>c._eventTs||c.timestamp||0;
   if(sort==='newest')data.sort((a,b)=>getTs(b)-getTs(a));
   else if(sort==='oldest')data.sort((a,b)=>getTs(a)-getTs(b));
@@ -2190,9 +2556,10 @@ window.renderHistoryTable = () => {
     const badge=badgeMap[action]||badgeMap['added'];
     const actionLabel=action.charAt(0).toUpperCase()+action.slice(1);
 
-    // Actions column logic: Delete for sold/dead, Active for others
+    // Actions column logic: Delete for any event belonging to an archived crab, Active for live crabs
     let actionCell = '';
-    if (action === 'sold' || action === 'dead') {
+    const isDeletedCrab = (window._deletedCrabs||[]).some(d=>d.id===c.id);
+    if (isDeletedCrab) {
       actionCell = `<button class="tbl-btn danger" title="Permanently delete" onclick="confirmDeleteRecord('${c.id}','${c.boxNo||c.id}',true)" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;">🗑 Delete</button>`;
     } else {
       actionCell = `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.68rem;font-weight:700;background:#d4edda;color:#155724;">● Active</span>`;
@@ -2992,7 +3359,7 @@ window.showToast=showToast;
 // ══ HEARTBEAT SYSTEM ══
 let _heartbeatInterval = null;
 const HEARTBEAT_INTERVAL = 30000;
-window.ONLINE_THRESHOLD = 999999999;
+// ONLINE_THRESHOLD is defined above (20 minutes)
 
 function startHeartbeat() {
   if (_heartbeatInterval) clearInterval(_heartbeatInterval);
@@ -3002,6 +3369,16 @@ function startHeartbeat() {
 
 function stopHeartbeat() {
   if (_heartbeatInterval) { clearInterval(_heartbeatInterval); _heartbeatInterval = null; }
+}
+
+let _disconnectSetupAdmin = false;
+function setupAdminPresence(s) {
+  if (!s._fbKey || s.username === 'admin' || _disconnectSetupAdmin || !window._fb) return;
+  try {
+    const userRef = window._fb.ref(window._fb.db, `users/${s._fbKey}`);
+    window._fb.onDisconnect(userRef).update({ isLoggedIn: false, lastActive: window._fb.serverTimestamp() });
+    _disconnectSetupAdmin = true;
+  } catch (e) {}
 }
 
 function updateLastActive() {
@@ -3014,6 +3391,7 @@ function updateLastActive() {
     sessionStorage.setItem('crabMonitoringSession', JSON.stringify(s));
     // Update lastActive + ensure isLoggedIn=true stays set while session is active
     if (window._fb && s.username && s.username !== 'admin') {
+      setupAdminPresence(s);
       const users = window._users || [];
       const matched = users.find(u => u.username === s.username);
       if (matched) {
