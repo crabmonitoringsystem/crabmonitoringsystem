@@ -369,7 +369,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 @media(max-width:600px){
   .header-content { flex-direction:column; gap:0.75rem; }
   .nav-tab { padding:0.7rem 0.9rem; font-size:0.82rem; }
-  .main-container { padding:0 1rem; }
+  .main-container { padding: 90px 1rem 1rem; margin: 0 auto; }
   
   /* Mobile responsive login modal */
   .auth-box {
@@ -504,9 +504,8 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   .mobile-drawer { display: block; width: 230px; right: -230px; }
   .nav-tabs-inner { overflow-x: auto; flex-wrap: nowrap; padding: 0 1rem; -webkit-overflow-scrolling: touch; }
   .nav-tab { flex-shrink: 0; padding: 0.8rem 1rem; font-size: 0.85rem; min-height: 44px; }
-  .nav-tabs-bar { position: static; }
-  
-  .main-container { padding: 0 0.75rem; margin: 1rem auto; }
+  .nav-tabs-bar { position: fixed; top: 100px; left: 0; right: 0; width: 100%; z-index: 490; }
+  .main-container { padding: 70px 0.75rem 1rem; margin: 0 auto; }
   
   .stats-grid, .stats-grid-3, .stats-grid-age { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
   .stat-card { padding: 1rem 0.75rem 2rem; min-height: 100px; }
@@ -604,7 +603,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   .nav-tab { padding: 0.6rem 0.75rem; font-size: 0.75rem; min-height: 40px; }
   .nav-tabs-inner { padding: 0 0.5rem; }
   
-  .main-container { padding: 0 0.5rem; margin: 0.75rem auto; }
+  .main-container { padding: 60px 0.5rem 0.75rem; margin: 0 auto; }
   
   .stats-grid, .stats-grid-3, .stats-grid-age { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
   .stat-card { padding: 0.75rem 0.5rem 1.5rem; min-height: 85px; }
@@ -1194,7 +1193,7 @@ body.authenticated .header { display:block !important; }
 <body>
 <div id="initialLoader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#f5f7fa;z-index:9999;display:flex;align-items:center;justify-content:center;">
   <div style="text-align:center;color:#667eea;font-family:'Segoe UI',sans-serif;">
-    <div style="font-size:2rem;margin-bottom:1rem;">🦀</div>
+    <img src="ingorecrab.png" style="height:90px;margin-bottom:1rem;">
     <div style="font-size:1.2rem;font-weight:600;">Crab Monitoring System</div>
     <div style="font-size:0.9rem;color:#888;margin-top:0.5rem;">Loading...</div>
   </div>
@@ -1205,7 +1204,7 @@ body.authenticated .header { display:block !important; }
   <div class="auth-particles" id="authParticles"></div>
   <div class="auth-box">
     <div class="auth-hero">
-      <span class="auth-crab">🦀</span>
+      <img src="ingorecrab.png" style="height:90px;">
       <div class="auth-hero-title">Crab Monitoring System</div>
       <div class="auth-hero-sub">Admin</div>
     </div>
@@ -1261,7 +1260,7 @@ body.authenticated .header { display:block !important; }
 <header class="header">
   <div class="header-content">
     <div class="logo-section">
-      <div class="logo">🦀</div>
+      <img src="ingorecrab.png" style="height:50px;">
       <div><h1 class="system-title">Crab Monitoring System</h1><p style="font-size:0.9rem;opacity:0.9;">Admin Control Panel</p></div>
     </div>
     <div class="user-section">
