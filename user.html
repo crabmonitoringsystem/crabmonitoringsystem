@@ -57,7 +57,7 @@
             padding:2.5rem 2.25rem 2rem; box-shadow:0 8px 48px rgba(0,0,0,0.5);
         }
         .brand { text-align:center; margin-bottom:2rem; }
-        .crab-icon { font-size:7rem; display:block; margin-bottom:0.75rem; }
+        .crab-icon { font-size:8rem; display:block; margin-bottom:0.75rem; }
         .crab-icon img { width:140px; height:140px; object-fit:contain; }
         .brand-title { font-family:'IBM Plex Mono',monospace; font-size:1.05rem; font-weight:600; color:#1a2a3a; }
         .brand-sub { font-size:0.76rem; color:#7a8aaa; margin-top:0.2rem; font-weight:300; }
@@ -116,7 +116,7 @@
         .crab-icon { display:inline-flex; align-items:center; justify-content:center; width:80px; height:80px; }
         .crab-icon img { width:100%; height:100%; object-fit:cover; display:block; border-radius:60%; }
         .app-title { font-size:1.05rem; font-weight:700; line-height:1.2; }
-        .app-subtitle { font-size:0.73rem; opacity:0.8; }
+        .app-subtitle { font-size:0.90rem; opacity:0.8; }
         .header-right { display:flex; align-items:center; gap:0.6rem; margin-left:auto; flex-wrap:nowrap; }
         .header-nav { display:flex; gap:0.6rem; align-items:center; }
         .nav-btn { background:rgba(255,255,255,0.15); color:white; border:1.5px solid rgba(255,255,255,0.3); padding:0.42rem 0.9rem; border-radius:8px; font-size:0.82rem; font-weight:600; text-decoration:none; cursor:pointer; transition:background .2s; display:inline-flex; align-items:center; gap:0.35rem; white-space:nowrap; font-family:inherit; }
@@ -600,7 +600,7 @@
             <div class="app-logo"><img src="Logo.jpg" alt="Crab Logo"></div>
             <div>
                 <div class="app-title">Crab Monitoring System</div>
-                <div class="app-subtitle">Ingore-Baldoza Fisherfolks Association</div>
+                <div class="app-subtitle"> User Panel</div>
             </div> 
             <div class="header-right">
                 <div class="conn-pill" id="connPill">
@@ -652,6 +652,7 @@
                 <div class="stat-card card-dead" onclick="showStatModal('mortality')"><div class="stat-icon">💀</div><div class="stat-title">Mortality</div><div class="stat-value" id="mortality">—</div><div class="stat-change" id="healthScoreChange">Loading...</div></div>
                 <div class="stat-card card-sell" onclick="showStatModal('sell')"><div class="stat-icon">💰</div><div class="stat-title">Ready to Sell</div><div class="stat-value" id="alertCount">—</div><div class="stat-change" id="alertChange">Loading...</div></div>
                 <div class="stat-card card-sold" onclick="showStatModal('sold')"><div class="stat-icon">🏷️</div><div class="stat-title">Sold</div><div class="stat-value" id="soldCount">—</div><div class="stat-change neutral" id="soldChange">Loading...</div></div>
+                <div class="stat-card" onclick="showStatModal('gender')"><div class="stat-icon">🚻</div><div class="stat-title">Gender (M/F/IF)</div><div class="stat-value" id="genderCount">—</div><div class="stat-change neutral" id="genderChange">Loading...</div></div>
             </div>
             <div class="stats-section-label">📅 Age Groups</div>
             <div class="stats-grid-age">
@@ -704,6 +705,7 @@
                             <select id="reportDateType">
                                 <option value="dateIn">📅 Date In</option>
                                 <option value="dateSold">🏷️ Date Sold</option>
+                                <option value="dateDead">💀 Date Dead</option>
                             </select>
                         </div>
                         <div class="report-group">
@@ -730,7 +732,7 @@
                             </select>
                         </div>
                         <div class="report-actions">
-                            <button class="btn btn-primary" onclick="showReportData()">👁️ Show Data</button>
+                            <button class="btn btn-primary" onclick="showReportData()">Show Data</button>
                         </div>
                     </div>
                 </div>
@@ -854,7 +856,7 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group"><label for="crabOrigin">Crab Origin</label><input type="text" id="crabOrigin" placeholder="e.g. Farm" required></div>
-                    <div class="form-group"><label for="gender">Gender</label><select id="gender" required><option value="">Select Gender</option><option value="male">Male</option><option value="female">Female</option><option value="unknown">Unknown</option></select></div>
+                    <div class="form-group"><label for="gender">Gender</label><select id="gender" required><option value="">Select Gender</option><option value="male">Male</option><option value="female">Female</option><option value="immature female">Immature Female</option></select></div>
                 </div>
                 <div class="form-row">
                     <div class="form-group"><label for="crabType">Type</label><select id="crabType" required><option value="">Select Type</option><option value="SS">(SS) King Crab (Bulik)</option><option value="SO">(SO) Orange/Red Mud Crab (Pulahan)</option><option value="ST">(ST) Purple Mud Crab (Native)</option></select></div>
@@ -1185,6 +1187,9 @@ function updateStats(crabs,deleted){
     const aW2=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week2').length;
     const aW3=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week3plus').length;
     const aW4=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week4').length;
+    const maleCount=crabs.filter(c=>(c.gender||'').toLowerCase()==='male').length;
+    const femaleCount=crabs.filter(c=>(c.gender||'').toLowerCase()==='female').length;
+    const immatureFemaleCount=crabs.filter(c=>(c.gender||'').toLowerCase()==='immature female').length;
     const needAttn=crabs.filter(c=>(c.weeklyStatus||'').toLowerCase()==='dead').length;
     document.getElementById('totalCrabs').textContent=total;
     document.getElementById('totalCrabsChange').textContent=`${total} active crab${total!==1?'s':''}`;
@@ -1200,6 +1205,9 @@ function updateStats(crabs,deleted){
     document.getElementById('soldCount').textContent=sold;
     document.getElementById('soldChange').textContent=sold===0?'No crabs sold yet':`${sold} crab${sold!==1?'s':''} sold`;
     document.getElementById('soldChange').className='stat-change neutral';
+    document.getElementById('genderCount').textContent=`${maleCount}/${femaleCount}/${immatureFemaleCount}`;
+    document.getElementById('genderChange').textContent=`Male: ${maleCount} • Female: ${femaleCount} • IF: ${immatureFemaleCount}`;
+    document.getElementById('genderChange').className='stat-change neutral';
     document.getElementById('ageDaysCount').textContent=aDays;
     document.getElementById('ageDaysChange').textContent=aDays===0?'No new arrivals':`${aDays} crab${aDays!==1?'s':''} in Days 1–6`;
     document.getElementById('ageWeek1Count').textContent=aW1;
@@ -1260,6 +1268,18 @@ window.showStatModal=(type)=>{
         case 'mortality': filtered=deleted.filter(c=>c.weeklyStatus==='Dead').sort((a,b)=>(b.diedAt||b.timestamp||0)-(a.diedAt||a.timestamp||0)); title='💀 Mortality Records'; subtitle=`${filtered.length} mortality record${filtered.length!==1?'s':''}`; hClass='mortality'; break;
         case 'sell':      filtered=crabs.filter(c=>c.weeklyStatus==='Ready to Sell').sort((a,b)=>boxSort(a.boxNo||a.id,b.boxNo||b.id)); title='💰 Ready to Sell'; subtitle=`${filtered.length} crabs ready for sale`; hClass='sell'; break;
         case 'sold':      filtered=deleted.filter(c=>c.weeklyStatus==='Sold').sort((a,b)=>(b.soldAt||b.timestamp||0)-(a.soldAt||a.timestamp||0)); title='🏷️ Sold Crabs'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} sold`; hClass='sold'; break;
+        case 'gender': {
+            filtered=crabs
+                .filter(c=>(c.weeklyStatus||'').toLowerCase()!=='sold'&&(c.weeklyStatus||'').toLowerCase()!=='dead')
+                .sort((a,b)=>boxSort(a.boxNo||a.id,b.boxNo||b.id));
+            const male=filtered.filter(c=>(c.gender||'').toLowerCase()==='male').length;
+            const female=filtered.filter(c=>(c.gender||'').toLowerCase()==='female').length;
+            const ifemale=filtered.filter(c=>(c.gender||'').toLowerCase()==='immature female').length;
+            title='🚻 Gender Overview';
+            subtitle=`M: ${male} • F: ${female} • IF: ${ifemale}`;
+            hClass='total';
+            break;
+        }
         case 'age-days':  filtered=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-days').sort((a,b)=>computeAgeDays(a.dateIn)-computeAgeDays(b.dateIn)); title='🦀 Day 1–6 (New Arrivals)'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} in early days`; hClass='age-days'; break;
         case 'age-week1': filtered=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week1').sort((a,b)=>computeAgeDays(a.dateIn)-computeAgeDays(b.dateIn)); title='📅 Week 1 (Days 7–13)'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} in Week 1`; hClass='age-week1'; break;
         case 'age-week2': filtered=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week2').sort((a,b)=>computeAgeDays(a.dateIn)-computeAgeDays(b.dateIn)); title='📆 Week 2 (Days 14–20)'; subtitle=`${filtered.length} crab${filtered.length!==1?'s':''} in Week 2`; hClass='age-week2'; break;
@@ -1511,6 +1531,8 @@ window.showReportData = () => {
                 relevantDate = c.dateIn ? new Date(c.dateIn) : null;
             } else if (dateType === 'dateSold') {
                 relevantDate = c.soldAt ? new Date(c.soldAt) : null;
+            } else if (dateType === 'dateDead') {
+                relevantDate = c.diedAt ? new Date(c.diedAt) : (c.updatedAt ? new Date(c.updatedAt) : null);
             }
             return relevantDate && relevantDate >= from;
         });
@@ -1525,6 +1547,8 @@ window.showReportData = () => {
                 relevantDate = c.dateIn ? new Date(c.dateIn) : null;
             } else if (dateType === 'dateSold') {
                 relevantDate = c.soldAt ? new Date(c.soldAt) : null;
+            } else if (dateType === 'dateDead') {
+                relevantDate = c.diedAt ? new Date(c.diedAt) : (c.updatedAt ? new Date(c.updatedAt) : null);
             }
             return relevantDate && relevantDate <= to;
         });
@@ -1549,6 +1573,9 @@ window.showReportData = () => {
         } else if (dateType === 'dateSold') {
             dateA = a.soldAt ? new Date(a.soldAt) : new Date(0);
             dateB = b.soldAt ? new Date(b.soldAt) : new Date(0);
+        } else if (dateType === 'dateDead') {
+            dateA = a.diedAt ? new Date(a.diedAt) : (a.updatedAt ? new Date(a.updatedAt) : new Date(0));
+            dateB = b.diedAt ? new Date(b.diedAt) : (b.updatedAt ? new Date(b.updatedAt) : new Date(0));
         }
         return dateB - dateA;
     });
@@ -1860,7 +1887,7 @@ window.exportCSV=()=>{
     wrap.addEventListener('scroll',()=>{ const max=wrap.scrollWidth-wrap.clientWidth; if(max<=0){thumb.style.left='0%';return;} const pct=wrap.scrollLeft/max, w=28; thumb.style.width=w+'%'; thumb.style.left=(pct*(100-w))+'%'; },{passive:true});
 })();
 
-// ==== HEARTBEAT SYSTEM ====
+// HEARTBEAT SYSTEM 
 let _heartbeatInterval = null;
 const HEARTBEAT_INTERVAL = 30000;
 let _disconnectSetup = false;
