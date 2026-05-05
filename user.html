@@ -76,7 +76,8 @@
         .field-input:focus { border-color:#2e6fbc; background:rgba(46,111,188,0.07); box-shadow:0 0 0 3px rgba(46,111,188,0.12); }
         .field-input.shake { animation:shake .35s ease; border-color:rgba(239,68,68,0.6); }
         @keyframes shake { 0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)} }
-        .eye-btn { position:absolute; right:11px; top:50%; transform:translateY(-50%); background:none; border:none; color:#b0bcd0; font-size:0.9rem; cursor:pointer; padding:4px; transition:color .15s; }
+        .eye-btn { position:absolute; right:11px; top:50%; transform:translateY(-50%); background:none; border:none; color:#8a97ab; cursor:pointer; padding:4px; transition:color .15s; width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center; }
+        .eye-btn svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
         .eye-btn:hover { color:#4a5a70; }
         .signin-btn {
             width:100%; padding:0.82rem; margin-top:0.4rem;
@@ -150,8 +151,9 @@
         .drawer-link { display:flex; align-items:center; gap:.8rem; padding:.85rem 1.25rem; text-decoration:none; color:var(--gray-700); font-size:.9rem; font-weight:500; border-left:3px solid transparent; transition:.15s; -webkit-tap-highlight-color:transparent; background:none; border-top:none; border-right:none; border-bottom:none; width:100%; cursor:pointer; font-family:inherit; }
         .drawer-link:hover { background:#f0f0ff; }
         .drawer-link.active { background:#f0f0ff; color:var(--purple-a); border-left-color:var(--purple-a); font-weight:700; }
-        .drawer-link-icon { font-size:1rem; width:22px; text-align:center; }
-        .drawer-logout { color:var(--red) !important; font-weight:600 !important; margin-bottom:.5rem; }
+        .drawer-link-icon { width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; color:currentColor; flex-shrink:0; }
+        .drawer-link-icon svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+        .drawer-logout { color:var(--red) !important; font-weight:700 !important; margin-bottom:.5rem; min-height:52px; padding:1rem 1.25rem; font-size:.98rem; }
         .toast { position:fixed; bottom:1.25rem; right:1rem; background:#1e293b; color:white; padding:.75rem 1.2rem; border-radius:9px; font-size:.85rem; z-index:9999; transform:translateY(80px); opacity:0; transition:all .3s; max-width:340px; box-shadow:0 6px 24px rgba(0,0,0,0.2); }
         .toast.show    { transform:translateY(0); opacity:1; }
         .toast.success { background:#15803d; }
@@ -159,6 +161,9 @@
         .toast.info    { background:var(--purple-a); }
 
         .main-container { max-width:1400px; margin:1.5rem auto; padding:0 1rem; }
+        .site-footer { background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; padding:.75rem 2rem; margin-top:2rem; }
+        .footer-content { max-width:1400px; margin:0 auto; display:flex; flex-direction:column; align-items:center; gap:.25rem; text-align:center; }
+        .footer-item { font-size:.75rem; opacity:.85; }
         .stats-section-label { font-size:.78rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.8px; margin-bottom:.6rem; margin-top:1.5rem; display:flex; align-items:center; gap:.5rem; }
         .stats-section-label:first-child { margin-top:0; }
         .stats-section-label::after { content:''; flex:1; height:1px; background:#e2e5eb; }
@@ -450,6 +455,9 @@
             .modal-content  { width:96%; margin:2% auto; padding:1.25rem; }
             .detail-modal-content { width:96%; margin:2% auto; max-height:92vh; }
             .allboxes-modal-content { width:96%; margin:2% auto; max-height:92vh; }
+            .site-footer { padding:.6rem .75rem; margin-top:1.5rem; }
+            .footer-content { gap:.2rem; }
+            .footer-item { font-size:.7rem; }
             .detail-modal-header { padding:1rem 1.25rem; }
             .detail-modal-header .modal-title { font-size:1.05rem; }
             .allboxes-body  { padding:1rem; }
@@ -580,7 +588,9 @@
                 <label class="field-label">Password</label>
                 <div class="field-wrap">
                     <input class="field-input" id="loginPassword" type="password" placeholder="Enter your password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()">
-                    <button class="eye-btn" type="button" onclick="toggleEye()" tabindex="-1" id="eyeBtn">👁</button>
+                    <button class="eye-btn" type="button" onclick="toggleEye()" tabindex="-1" id="eyeBtn" aria-label="Show password" title="Show password">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
                 </div>
             </div>
             <button class="signin-btn" id="signinBtn" onclick="doSignIn()">Log In</button>
@@ -610,7 +620,7 @@
                     <span id="statusLabel">Connecting...</span>
                 </div>
                 <nav class="header-nav">
-                    <button class="nav-btn" id="navDashboard" onclick="showView('dashboard')">🏠 Dashboard</button>
+                    <button class="nav-btn" id="navDashboard" onclick="openDashboardView()">🏠 Dashboard</button>
                     <button class="nav-btn" id="navHistory"   onclick="showView('history')">📋 History</button>
                 </nav>
                 <div class="header-user">
@@ -630,17 +640,17 @@
             <div class="drawer-hd-role" id="drawerUserRole">—</div>
         </div>
         <nav class="drawer-nav-list">
-            <button class="drawer-link" id="drawerDashboard" onclick="showView('dashboard');closeDrawer();">
-                <span class="drawer-link-icon">🏠</span>Dashboard
+            <button class="drawer-link" id="drawerDashboard" onclick="openDashboardView();closeDrawer();">
+                <span class="drawer-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path><path d="M9.5 21v-6h5v6"></path></svg></span>Dashboard
             </button>
             <button class="drawer-link" id="drawerHistory" onclick="showView('history');closeDrawer();">
-                <span class="drawer-link-icon">📋</span>History
+                <span class="drawer-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 5h11v16H4V5h3"></path><path d="M9 3h6v4H9z"></path><path d="M8 11h8"></path><path d="M8 15h8"></path></svg></span>History
             </button>
         </nav>
         <div style="flex:1;"></div>
         <div style="height:1px;background:#eee;margin:.5rem 1.25rem;"></div>
         <button class="drawer-link drawer-logout" id="drawerLogoutBtn">
-            <span class="drawer-link-icon">🚪</span>Logout
+            <span class="drawer-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 4H5v16h5"></path><path d="M14 16l5-4-5-4"></path><path d="M19 12H9"></path></svg></span>Logout
         </button>
     </div>
 
@@ -706,7 +716,7 @@
                             <select id="reportDateType">
                                 <option value="dateIn">📅 Date In</option>
                                 <option value="dateSold">🏷️ Date Sold</option>
-                                <option value="dateDead">💀 Date Dead</option>
+                                <option value="dateDead">💀 Mortality Date</option>
                             </select>
                         </div>
                         <div class="report-group">
@@ -826,6 +836,13 @@
             </div>
         </div>
     </div>
+
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-item">©2026 Crab Monitoring System</div>
+            <div class="footer-item">All rights reserved.</div>
+        </div>
+    </footer>
 </div>
 
 <!-- MODALS -->
@@ -936,7 +953,7 @@ onValue(ref(db,'crabs'), snapshot => {
     renderCrabGrid(window._allCrabs);
     updateStats(window._allCrabs, window._deletedCrabs||[]);
     renderObservations(window._allCrabs);
-    renderTopOrigins(window._allCrabs);
+    renderTopOrigins(window._allCrabs, window._deletedCrabs||[]);
     document.getElementById('lastUpdated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
 });
 
@@ -944,6 +961,7 @@ onValue(ref(db,'deletedCrabs'), snapshot => {
     const data = snapshot.val();
     window._deletedCrabs = data ? Object.entries(data).map(([id,v])=>({id,...v})) : [];
     updateStats(window._allCrabs||[], window._deletedCrabs);
+    renderTopOrigins(window._allCrabs||[], window._deletedCrabs);
 });
 
 onValue(ref(db,'activityLog'), snapshot => {
@@ -1028,6 +1046,20 @@ function showView(view) {
     if(view==='history') onFilterChange();
 }
 window.showView = showView;
+window.openDashboardView=()=>{
+    if(window._currentView==='dashboard'){
+        const crabs=window._allCrabs||[];
+        const deleted=window._deletedCrabs||[];
+        renderCrabGrid(crabs);
+        updateStats(crabs,deleted);
+        renderObservations(crabs);
+        renderTopOrigins(crabs,deleted);
+        document.getElementById('lastUpdated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+        showToast('Dashboard refreshed','info');
+        return;
+    }
+    showView('dashboard');
+};
 
 (function(){
     const s = sessionStorage.getItem('crabMonitoringSession') || localStorage.getItem('crabMonitoringSession');
@@ -1099,13 +1131,22 @@ function boxSort(a,b){ const parse=s=>{ const m=(s||'').match(/^([A-Za-z]+)(\d+)
 window.boxSort=boxSort;
 function isBoxOccupied(c){ return (c.weeklyStatus||'').toLowerCase()!=='sold'; }
 function rackLetter(boxNo){ const m=(boxNo||'').match(/^([A-Za-z]+)/); return m?m[1].toUpperCase():'?'; }
+const EYE_OPEN_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+const EYE_CLOSED_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"></path><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"></path><path d="M9.5 5.3A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a17.2 17.2 0 0 1-3.3 4.3"></path><path d="M6.2 6.2C3.8 8 2 12 2 12s3.5 7 10 7a10.7 10.7 0 0 0 4.7-1.1"></path></svg>';
 
 /* ── Login helpers ── */
 function showErr(msg){ const el=document.getElementById('errMsg'); el.textContent=msg; el.className='err-msg show'; }
 function hideErr(){ document.getElementById('errMsg').className='err-msg'; }
 function shakeFields(){ ['loginUsername','loginPassword'].forEach(id=>{ const el=document.getElementById(id); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); el.addEventListener('animationend',()=>el.classList.remove('shake'),{once:true}); }); }
 function setLoading(on,text,dest){ if(text)document.getElementById('loadText').textContent=text; if(dest)document.getElementById('loadDest').textContent=dest||''; document.getElementById('loadOverlay').classList.toggle('on',on); }
-window.toggleEye=()=>{ const inp=document.getElementById('loginPassword'),btn=document.getElementById('eyeBtn'); inp.type=inp.type==='password'?'text':'password'; btn.textContent=inp.type==='text'?'🙈':'👁'; };
+window.toggleEye=()=>{
+    const inp=document.getElementById('loginPassword'),btn=document.getElementById('eyeBtn');
+    const isShowing=inp.type==='text';
+    inp.type=isShowing?'password':'text';
+    btn.innerHTML=isShowing?EYE_OPEN_ICON:EYE_CLOSED_ICON;
+    btn.setAttribute('aria-label',isShowing?'Show password':'Hide password');
+    btn.setAttribute('title',isShowing?'Show password':'Hide password');
+};
 
 /* ══════════════════════════════════════════════
    ACTIVITY LOG HELPERS
@@ -1154,12 +1195,12 @@ window.writeLog = writeLog;
 ══════════════════════════════════════════════ */
 const ORIGIN_COLORS=['linear-gradient(135deg,#667eea,#764ba2)','linear-gradient(135deg,#4facfe,#00f2fe)','linear-gradient(135deg,#43e97b,#38f9d7)','linear-gradient(135deg,#fa709a,#fee140)','linear-gradient(135deg,#f093fb,#f5576c)','linear-gradient(135deg,#a78bfa,#7c3aed)','linear-gradient(135deg,#e67e22,#f39c12)'];
 
-function renderTopOrigins(crabs){
+function renderTopOrigins(crabs, deletedCrabs=[]){
     const container=document.getElementById('topOriginsList');
-    const active=crabs.filter(c=>isBoxOccupied(c)); const total=active.length;
-    const map={}; active.forEach(c=>{ const o=(c.crabOrigin||'').trim()||'Unknown'; if(!map[o])map[o]={count:0,types:new Set()}; map[o].count++; if(c.crabType)map[o].types.add(c.crabType); });
+    const records=[...(crabs||[]),...(deletedCrabs||[])]; const total=records.length;
+    const map={}; records.forEach(c=>{ const o=(c.crabOrigin||'').trim()||'Unknown'; if(!map[o])map[o]={count:0,types:new Set()}; map[o].count++; if(c.crabType)map[o].types.add(c.crabType); });
     const sorted=Object.entries(map).sort((a,b)=>b[1].count-a[1].count).slice(0,7);
-    document.getElementById('originsTotal').textContent=`${total} active crab${total!==1?'s':''}`;
+    document.getElementById('originsTotal').textContent=`${total} total crab${total!==1?'s':''}`;
     if(!sorted.length){ container.innerHTML='<div class="empty-state">No origin data yet.</div>'; return; }
     const maxC=sorted[0][1].count;
     container.innerHTML=sorted.map(([origin,data],idx)=>{

@@ -2549,24 +2549,28 @@ window.renderHistoryTable = () => {
         if(d!==null) ageAtExit=`${ageLabel(d).text} (${d}d)`;
       }
     }
-    const wDiff=(c.currentWeight!=null&&c.originWeight!=null)?(parseFloat(c.currentWeight)-parseFloat(c.originWeight)).toFixed(1):null;
-    const wHtml=wDiff!==null?` <span class="wdiff ${parseFloat(wDiff)>=0?'pos':'neg'}">(${parseFloat(wDiff)>=0?'+':''}${wDiff}g)</span>`:'';
-    const badgeMap={'added':{cls:'action-added',icon:'➕',label:'Added'},'updated':{cls:'action-updated',icon:'✏️',label:'Updated'},'dead':{cls:'action-dead',icon:'💀',label:'Dead'},'sold':{cls:'action-sold',icon:'🏷️',label:'Sold'},'removed':{cls:'action-removed',icon:'🗑️',label:'Removed'}};
-    const badge=badgeMap[action]||badgeMap['added'];
-    const actionLabel=action.charAt(0).toUpperCase()+action.slice(1);
+    const wDiff = (c.currentWeight != null && c.originWeight != null) ? (parseFloat(c.currentWeight) - parseFloat(c.originWeight)).toFixed(1) : null;
+    const wHtml = wDiff !== null ? ` <span class="wdiff ${parseFloat(wDiff) >= 0 ? 'pos' : 'neg'}">(${parseFloat(wDiff) >= 0 ? '+' : ''}${wDiff}g)</span>` : '';
+    const badgeMap = { 'added': { cls: 'action-added', icon: '➕', label: 'Added' }, 'updated': { cls: 'action-updated', icon: '✏️', label: 'Updated' }, 'dead': { cls: 'action-dead', icon: '💀', label: 'Dead' }, 'sold': { cls: 'action-sold', icon: '🏷️', label: 'Sold' }, 'removed': { cls: 'action-removed', icon: '🗑️', label: 'Removed' } };
+    const badge = badgeMap[action] || badgeMap['added'];
+    const actionLabel = action.charAt(0).toUpperCase() + action.slice(1);
 
     // Actions column logic: Delete for any event belonging to an archived crab, Active for live crabs
+    // Restore button for sold crabs
     let actionCell = '';
-    const isDeletedCrab = (window._deletedCrabs||[]).some(d=>d.id===c.id);
-    if (isDeletedCrab) {
+    const isDeletedCrab = (window._deletedCrabs || []).some(d => d.id === c.id);
+    const isSoldCrab = isDeletedCrab && (window._deletedCrabs || []).find(d => d.id === c.id)?.weeklyStatus === 'Sold';
+    if (isSoldCrab) {
+      actionCell = `<button class="tbl-btn success" title="Restore to healthy" onclick="restoreCrab('${c.id}','${c.boxNo||c.id}')" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;">↩ Restore</button><button class="tbl-btn danger" title="Permanently delete" onclick="confirmDeleteRecord('${c.id}','${c.boxNo||c.id}',true)" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;">🗑 Delete</button>`;
+    } else if (isDeletedCrab) {
       actionCell = `<button class="tbl-btn danger" title="Permanently delete" onclick="confirmDeleteRecord('${c.id}','${c.boxNo||c.id}',true)" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;">🗑 Delete</button>`;
     } else {
       actionCell = `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.68rem;font-weight:700;background:#d4edda;color:#155724;">● Active</span>`;
     }
 
-    return`<tr><td class="bold">${c.boxNo||c.id||'—'}</td><td><span class="action-badge ${badge.cls}"><span class="badge-icon">${badge.icon}</span> ${actionLabel}</span></td><td>${c.crabType||'—'}</td><td>${c.crabClass?'Class '+c.crabClass:'—'}</td><td>${cap(c.gender||'—')}</td><td>${c.location||'—'}</td><td class="hist-date">${c.dateIn||'—'}</td><td class="hist-date">${ageAtExit}</td><td class="hist-date">${c.originWeight!=null?c.originWeight+'g':'—'}</td><td class="hist-date">${c.currentWeight!=null?c.currentWeight+'g':'—'}${wHtml}</td><td class="hist-user">${c.addedBy||c.recordedBy||'—'}</td><td class="hist-date">${actionTs?fmtDate(actionTs):'—'}</td><td class="hist-user">${actionBy}</td><td style="min-width:58px;"><div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;">${actionCell}</div></td></tr>`;
+    return `<tr><td class="bold">${c.boxNo || c.id || '—'}</td><td><span class="action-badge ${badge.cls}"><span class="badge-icon">${badge.icon}</span> ${actionLabel}</span></td><td>${c.crabType || '—'}</td><td>${c.crabClass ? 'Class ' + c.crabClass : '—'}</td><td>${cap(c.gender || '—')}</td><td>${c.location || '—'}</td><td class="hist-date">${c.dateIn || '—'}</td><td class="hist-date">${ageAtExit}</td><td class="hist-date">${c.originWeight != null ? c.originWeight + 'g' : '—'}</td><td class="hist-date">${c.currentWeight != null ? c.currentWeight + 'g' : '—'}${wHtml}</td><td class="hist-user">${c.addedBy || c.recordedBy || '—'}</td><td class="hist-date">${actionTs ? fmtDate(actionTs) : '—'}</td><td class="hist-user">${actionBy}</td><td style="min-width:58px;"><div style="display:flex;flex-direction:column;gap:3px;align-items:stretch;">${actionCell}</div></td></tr>`;
   }).join('');
-  
+
   updatePagination(data.length);
 };
 
@@ -3569,6 +3573,39 @@ const authOverlay = document.getElementById('authOverlay');
 if (authOverlay) {
   observer.observe(authOverlay, { attributes: true });
 }
+
+// Restore crab function - moves sold crabs back to healthy status
+window.restoreCrab = async (crabId, boxNo) => {
+  showConfirm(`Restore <strong>${boxNo}</strong> from sold to healthy status? This will move it back to active inventory.`, async () => {
+    const { db, ref, set, get } = window._fb;
+    try {
+      const snap = await get(ref(db, `deletedCrabs/${crabId}`));
+      if (!snap.exists()) {
+        showToast('Crab record not found', 'error');
+        return;
+      }
+      const crabData = snap.val();
+      const session = sessionStorage.getItem('crabMonitoringSession');
+      const adminUser = session ? JSON.parse(session).username : 'admin';
+      const restoredCrab = {
+        ...crabData,
+        weeklyStatus: 'healthy',
+        soldAt: null,
+        soldBy: null,
+        restoredAt: Date.now(),
+        restoredBy: adminUser,
+        updatedAt: Date.now(),
+        updatedBy: adminUser
+      };
+      await set(ref(db, `crabs/${crabId}`), restoredCrab);
+      await set(ref(db, `deletedCrabs/${crabId}`), null);
+      showToast(`${boxNo} restored to healthy status `, 'success');
+    } catch (e) {
+      console.error('Restore error:', e);
+      showToast('Error restoring crab: ' + e.message, 'error');
+    }
+  });
+};
 </script>
 </body>
 </html>
