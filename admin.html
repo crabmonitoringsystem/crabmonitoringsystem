@@ -2623,16 +2623,46 @@ window.changeRowsPerPage = () => {
   renderHistoryTable();
 };
 
+async function purgeActivityLogForCrab(crab){
+  const { db, ref, get, set } = window._fb;
+  const box = crab?.boxNo || '';
+  const dateIn = crab?.dateIn || '';
+  if(!box) return 0;
+  try{
+    const snap = await get(ref(db,'activityLog'));
+    if(!snap.exists()) return 0;
+    const logs = snap.val() || {};
+    const entries = Object.entries(logs);
+    const keysToDelete = entries
+      .filter(([,entry])=>{
+        if((entry?.boxNo||'') !== box) return false;
+        // Prefer same batch match when dateIn exists; fallback to box match only.
+        if(dateIn && (entry?.dateIn||'')) return (entry.dateIn === dateIn);
+        return true;
+      })
+      .map(([logKey])=>logKey);
+    if(!keysToDelete.length) return 0;
+    await Promise.all(keysToDelete.map(logKey=>set(ref(db,`activityLog/${logKey}`),null)));
+    return keysToDelete.length;
+  }catch(err){
+    console.warn('Failed to purge activityLog entries:', err);
+    return 0;
+  }
+}
+
 window.confirmDeleteRecord=(key,boxNo,isArchived)=>{
   showConfirm(`Permanently delete record for <strong>${boxNo}</strong>? This cannot be undone.`,async()=>{
     const{db,ref,set}=window._fb;
     try{
+      const source = isArchived===false ? (window._allCrabs||[]) : (window._deletedCrabs||[]);
+      const crab = source.find(c=>c.id===key) || { id:key, boxNo };
+      const removedLogs = await purgeActivityLogForCrab(crab);
       if(isArchived===false){
         await set(ref(db,`crabs/${key}`),null);
       } else {
         await set(ref(db,`deletedCrabs/${key}`),null);
       }
-      showToast(`${boxNo} deleted`,'info');
+      showToast(`${boxNo} deleted${removedLogs?` • ${removedLogs} history log${removedLogs!==1?'s':''} removed`:''}`,'info');
     }catch(e){showToast(e.message,'error');}
   });
 };
