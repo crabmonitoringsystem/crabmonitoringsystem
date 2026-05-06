@@ -1445,8 +1445,14 @@ body.authenticated .header { display:block !important; }
       </div>
       <div class="table-wrap">
         <table class="admin-table">
-          <thead><tr><th>Box No.</th><th>Action</th><th>Type</th><th>Class</th><th>Gender</th><th>Location</th><th>Date In</th><th>Age</th><th>Orig. Wt.</th><th>Current Wt.</th><th>Added By</th><th>Action Date</th><th>Action By</th><th>Actions</th></tr></thead>
-          <tbody id="histTableBody"><tr><td colspan="14"><div class="empty-state"><div class="empty-icon">⏳</div>Loading...</div></td></tr></tbody>
+          <thead><tr>
+            <th>#</th><th>Box No.</th><th>Action</th><th>Type</th>
+            <th>Class</th><th>Gender</th><th>Location</th><th>Status</th>
+            <th>Date In</th><th>Age</th><th>Orig. Wt.</th><th>Curr. Wt.</th>
+            <th>Changes</th><th>Added By</th><th>Action By</th><th>Action At</th>
+            <th>Admin</th>
+          </tr></thead>
+          <tbody id="histTableBody"><tr><td colspan="17"><div class="empty-state"><div class="empty-icon">⏳</div>Loading...</div></td></tr></tbody>
         </table>
       </div>
       <div class="pagination-wrapper">
@@ -2094,6 +2100,18 @@ onValue(ref(db,'deletedCrabs'),snap=>{
   // Immediately update Records count and Top Contributors when archived data arrives
   reRenderAll();
 });
+
+// Keep admin History in sync with user.html History (activityLog)
+onValue(ref(db,'activityLog'), snapshot => {
+  const data = snapshot.val();
+  window._allEvents = data
+    ? Object.entries(data).map(([id, v]) => ({ id, ...v }))
+    : [];
+  // Only re-filter when History tab is active to avoid unnecessary DOM churn
+  const histTab = document.getElementById('tab-history');
+  if (histTab && histTab.classList.contains('active')) filterHistory();
+});
+
 onValue(ref(db,'restoreHistory'),snap=>{
   const data=snap.val()||{};
   const flat=[];
@@ -2451,170 +2469,62 @@ window.clearInventoryResults = function(){
   document.getElementById('inventoryResults').innerHTML = '';
 };
 
+/* ══════════════════════════════════════════════
+   HISTORY (sync with user.html activityLog)
+══════════════════════════════════════════════ */
+const HIST_FIELD_LABELS = {
+  dateIn:'Date In', crabOrigin:'Origin', gender:'Gender', crabType:'Type',
+  crabClass:'Class', originWeight:'Orig.Wt', currentWeight:'Curr.Wt',
+  weeklyStatus:'Status', location:'Location', notes:'Notes'
+};
+function histActionLabel(a){
+  if(a==='added')return'➕ Added';
+  if(a==='updated')return'✏️ Updated';
+  if(a==='restored')return'↩️ Restored';
+  if(a==='sold')return'🏷️ Sold';
+  if(a==='dead')return'💀 Dead';
+  return'🗑️ Removed';
+}
+function histStatusStyle(weeklyStatus, action){
+  const st=(weeklyStatus||'').toLowerCase().replace(/\s+/g,'');
+  const label=cap(weeklyStatus||'Unknown');
+  let bg='#f1f5f9',color='#475569';
+  if(action==='removed'){bg='#fee2e2';color='#b91c1c';}
+  else if(action==='dead'||st==='dead'){bg='#fef3c7';color='#92400e';}
+  else if(st==='healthy'){bg='#dcfce7';color='#15803d';}
+  else if(st==='readytosell'){bg='#fef3c7';color='#92400e';}
+  return { label, bg, color };
+}
+
 window.filterHistory=()=>{
   const q=(document.getElementById('histSearch')?.value||'').toLowerCase();
-  const actionFilter=document.getElementById('histAction')?.value||'';
-  const typeFilter=document.getElementById('histType')?.value||'';
-  const monthFilter=document.getElementById('histMonth')?.value||'';
+  const action=document.getElementById('histAction')?.value||'';
+  const type=document.getElementById('histType')?.value||'';
   const sort=document.getElementById('histSort')?.value||'newest';
-  
-  // Create event-based history (same logic as history.html) - include activityLog data
-  const events=[];
-  
-  // Include activityLog entries from user.html system
-  if(window._allEvents && window._allEvents.length > 0){
-    window._allEvents.forEach(event => {
-      events.push({
-        id: event.id,
-        boxNo: event.boxNo,
-        crabType: event.crabType,
-        crabClass: event.crabClass,
-        gender: event.gender,
-        location: event.location,
-        weeklyStatus: event.weeklyStatus,
-        originWeight: event.originWeight,
-        currentWeight: event.currentWeight,
-        notes: event.notes,
-        addedBy: event.addedBy,
-        recordedBy: event.addedBy,
-        _eventAction: event.action,
-        _eventTs: event.eventTs,
-        _eventBy: event.eventBy
-      });
-    });
-  }
-  
-  // Process active crabs
-  Object.entries(window._allCrabs||{}).forEach(([id,v])=>{
-    const base={id,...v};
-    const addedTs = v.createdAt||v.addedAt||v.timestamp||0;
-    // Added event: show original data (weight at time of adding)
-    const addedBase = {...base, currentWeight: v.originWeight != null ? v.originWeight : v.currentWeight};
-    events.push({...addedBase,_eventAction:'added',_eventTs:addedTs,_eventBy:v.addedBy||v.recordedBy||'—'});
-    // Emit every update from updateHistory so 2nd, 3rd, 4th edits all appear
-    const uhRaw = v.updateHistory;
-    const uh = Array.isArray(uhRaw) ? uhRaw : (uhRaw ? Object.values(uhRaw) : []);
-    if(uh.length){
-      uh.forEach((entry)=>{
-        if((entry.action||'').toLowerCase()==='restored'){
-          events.push({...base,_eventAction:'restored',_eventTs:entry.ts||v.restoredAt||0,_eventBy:entry.by||v.restoredBy||v.updatedBy||'—'});
-          return;
-        }
-        const updateBase = {
-          ...base,
-          currentWeight: entry.currentWeight != null ? entry.currentWeight : base.currentWeight,
-          weeklyStatus: entry.weeklyStatus != null ? entry.weeklyStatus : base.weeklyStatus,
-          location: entry.location != null ? entry.location : base.location,
-          crabClass: entry.crabClass != null ? entry.crabClass : base.crabClass,
-          notes: entry.notes != null ? entry.notes : base.notes
-        };
-        events.push({...updateBase,_eventAction:'updated',_eventTs:entry.ts||v.updatedAt||0,_eventBy:entry.by||v.updatedBy||'—'});
-      });
-    } else if(v.updatedAt && Math.abs(v.updatedAt - addedTs) > 1000){
-      events.push({...base,_eventAction:'updated',_eventTs:v.updatedAt,_eventBy:v.updatedBy||'—'});
-    }
-    const hasRestoreInHistory = uh.some(entry => (entry.action||'').toLowerCase()==='restored');
-    if(v.restoredAt && !hasRestoreInHistory){
-      events.push({...base,_eventAction:'restored',_eventTs:v.restoredAt,_eventBy:v.restoredBy||v.updatedBy||'—'});
-    }
-  });
 
-  // Process deleted crabs - show all updates, then final event (sold/dead/removed)
-  Object.entries(window._deletedCrabs||{}).forEach(([id,v])=>{
-    const base={id,...v};
-    const addedTs = v.createdAt||v.addedAt||v.timestamp||0;
-    // Added event
-    const addedBase = {...base, currentWeight: v.originWeight != null ? v.originWeight : v.currentWeight};
-    events.push({...addedBase,_eventAction:'added',_eventTs:addedTs,_eventBy:v.addedBy||v.recordedBy||'—'});
-    // Update events from history
-    const uhRaw = v.updateHistory;
-    const uh = Array.isArray(uhRaw) ? uhRaw : (uhRaw ? Object.values(uhRaw) : []);
-    if(uh.length){
-      uh.forEach((entry)=>{
-        if((entry.action||'').toLowerCase()==='restored'){
-          events.push({...base,_eventAction:'restored',_eventTs:entry.ts||v.restoredAt||0,_eventBy:entry.by||v.restoredBy||v.updatedBy||'—'});
-          return;
-        }
-        const entryTs = entry.ts || v.updatedAt || 0;
-        const entryStatus = (entry.weeklyStatus || '').toLowerCase().replace(/\s+/g,'');
-        const isTerminalStatusUpdate = entryStatus === 'sold' || entryStatus === 'dead' || entryStatus === 'removed';
-        const matchesTerminalTimestamp = entryTs && (entryTs === v.soldAt || entryTs === v.diedAt || entryTs === v.removedAt);
-        if(isTerminalStatusUpdate || matchesTerminalTimestamp) return;
-        const updateBase = {
-          ...base,
-          currentWeight: entry.currentWeight != null ? entry.currentWeight : base.currentWeight,
-          weeklyStatus: entry.weeklyStatus != null ? entry.weeklyStatus : base.weeklyStatus,
-          location: entry.location != null ? entry.location : base.location,
-          crabClass: entry.crabClass != null ? entry.crabClass : base.crabClass,
-          notes: entry.notes != null ? entry.notes : base.notes
-        };
-        events.push({...updateBase,_eventAction:'updated',_eventTs:entryTs,_eventBy:entry.by||v.updatedBy||'—'});
-      });
-    } else if(v.updatedAt && Math.abs(v.updatedAt - addedTs) > 1000){
-      events.push({...base,_eventAction:'updated',_eventTs:v.updatedAt,_eventBy:v.updatedBy||'—'});
-    }
-    const hasRestoreInHistory = uh.some(entry => (entry.action||'').toLowerCase()==='restored');
-    if(v.restoredAt && !hasRestoreInHistory){
-      events.push({...base,_eventAction:'restored',_eventTs:v.restoredAt,_eventBy:v.restoredBy||v.updatedBy||'—'});
-    }
-    const st=(v.weeklyStatus||'').toLowerCase().replace(/\s+/g,'');
-    if(st==='sold'){
-      events.push({...base,_eventAction:'sold',_eventTs:v.soldAt||v.timestamp||0,_eventBy:v.soldBy||'—'});
-    } else if(st==='dead'){
-      events.push({...base,_eventAction:'dead',_eventTs:v.diedAt||v.removedAt||v.updatedAt||v.timestamp||0,_eventBy:v.diedBy||v.removedBy||v.updatedBy||'—'});
-    } else {
-      events.push({...base,_eventAction:'removed',_eventTs:v.removedAt||v.updatedAt||v.timestamp||0,_eventBy:v.removedBy||'—'});
-    }
-  });
+  let data=[...(window._allEvents||[])];
 
-  // Immutable restore events (separate log so restore does not disappear after later edits)
-  const restoredKeys = new Set(events.filter(e=>e._eventAction==='restored').map(e=>`${e.id}:${e._eventTs||0}`));
-  const allById = new Map([...(window._allCrabs||[]), ...(window._deletedCrabs||[])].map(c=>[c.id,c]));
-  (window._restoreHistory||[]).forEach((r)=>{
-    const ts = r.ts || 0;
-    const key = `${r.id}:${ts}`;
-    if(!ts || restoredKeys.has(key)) return;
-    const base = allById.get(r.id) || {
-      id: r.id,
-      boxNo: r.boxNo || r.id,
-      crabType: r.crabType || '',
-      crabClass: r.crabClass || '',
-      gender: r.gender || '',
-      location: r.location || '',
-      dateIn: r.dateIn || ''
-    };
-    events.push({...base,_eventAction:'restored',_eventTs:ts,_eventBy:r.by||'—'});
-  });
-  
-  let data = events;
-  if(q)data=data.filter(c=>(c.boxNo||c.id||'').toLowerCase().includes(q)||(c.crabType||'').toLowerCase().includes(q)||(c.location||'').toLowerCase().includes(q)||c._eventAction.toLowerCase().includes(q)||(c.weeklyStatus||'').toLowerCase().includes(q)||(c.recordedBy||c.addedBy||'').toLowerCase().includes(q)||c._eventBy.toLowerCase().includes(q));
-  if(actionFilter)data=data.filter(c=>c._eventAction===actionFilter.toLowerCase());
-  if(typeFilter)data=data.filter(c=>(c.crabType||'')===typeFilter);
-  
-  // Month filter using action dates
-  if(monthFilter){
-    const [year, month] = monthFilter.split('-').map(Number);
-    const targetMonth = month - 1;
-    const targetYear = year;
-    data=data.filter(c=>{
-      const ts=c._eventTs||c.timestamp||0;
-      if(!ts)return false;
-      const date=new Date(ts);
-      return date.getMonth()===targetMonth && date.getFullYear()===targetYear;
-    });
-  }
-  
-  const getTs=c=>c._eventTs||c.timestamp||0;
-  if(sort==='newest')data.sort((a,b)=>getTs(b)-getTs(a));
-  else if(sort==='oldest')data.sort((a,b)=>getTs(a)-getTs(b));
-  else data.sort((a,b)=>(a.boxNo||a.id||'').localeCompare(b.boxNo||b.id||''));
-  
-  // Store filtered data for pagination
-  window._filteredHistoryData = data;
-  
-  // Reset to page 1 when filters change
-  window._currentPage = 1;
-  
+  if(action) data=data.filter(e=>(e.action||'')===action);
+  if(type)   data=data.filter(e=>(e.crabType||'')===type);
+  if(q) data=data.filter(e=>
+    (e.boxNo||'').toLowerCase().includes(q)||
+    (e.crabType||'').toLowerCase().includes(q)||
+    (e.location||'').toLowerCase().includes(q)||
+    (e.weeklyStatus||'').toLowerCase().includes(q)||
+    (e.addedBy||'').toLowerCase().includes(q)||
+    (e.eventBy||'').toLowerCase().includes(q)||
+    (e.notes||'').toLowerCase().includes(q)||
+    (e.action||'').toLowerCase().includes(q)||
+    Object.keys(e.changes||{}).some(f=>HIST_FIELD_LABELS[f] && HIST_FIELD_LABELS[f].toLowerCase().includes(q))
+  );
+
+  const getTs=e=>e.eventTs||0;
+  if(sort==='newest') data.sort((a,b)=>getTs(b)-getTs(a));
+  else if(sort==='oldest') data.sort((a,b)=>getTs(a)-getTs(b));
+  else data.sort((a,b)=>(a.boxNo||'').localeCompare(b.boxNo||''));
+
+  window._filteredHistoryData=data;
+  window._currentPage=1;
   renderHistoryTable();
 };
 
@@ -2631,39 +2541,65 @@ window.renderHistoryTable = () => {
   const endIndex = startIndex + rowsPerPage;
   const paginatedData = data.slice(startIndex, endIndex);
   
-  document.getElementById('histCountBadge').textContent=`${data.length} record${data.length!==1?'s':''}`;
+  document.getElementById('histCountBadge').textContent=`${data.length} event${data.length!==1?'s':''}`;
   const tbody=document.getElementById('histTableBody');
-  if(!data.length){tbody.innerHTML=`<tr><td colspan="14"><div class="empty-state"><div class="empty-icon">📭</div>No records found</div></td></tr>`;updatePagination(0);return;}
+  if(!data.length){
+    tbody.innerHTML=`<tr><td colspan="17"><div class="empty-state"><div class="empty-icon">📭</div>No events found</div></td></tr>`;
+    updatePagination(0);
+    return;
+  }
   
-  tbody.innerHTML=paginatedData.map(c=>{
-    const action=c._eventAction;
-    let actionBy=c._eventBy||'—',actionTs=c._eventTs||c.timestamp;
-    let ageAtExit='—';
-    if(c.dateIn){
-      if(actionTs&&(action==='sold'||action==='removed'||action==='dead')){
-        const d=Math.max(0,Math.floor((new Date(actionTs).setHours(0,0,0,0)-new Date(c.dateIn+'T00:00:00'))/86400000));
-        ageAtExit=`${ageLabel(d).text} (${d}d)`;
-      } else {
-        const d=ageDays(c.dateIn);
-        if(d!==null) ageAtExit=`${ageLabel(d).text} (${d}d)`;
-      }
-    }
-    const wDiff = (c.currentWeight != null && c.originWeight != null) ? (parseFloat(c.currentWeight) - parseFloat(c.originWeight)).toFixed(1) : null;
-    const wHtml = wDiff !== null ? ` <span class="wdiff ${parseFloat(wDiff) >= 0 ? 'pos' : 'neg'}">(${parseFloat(wDiff) >= 0 ? '+' : ''}${wDiff}g)</span>` : '';
-    const badgeMap = { 'added': { cls: 'action-added', icon: '➕', label: 'Added' }, 'updated': { cls: 'action-updated', icon: '✏️', label: 'Updated' }, 'restored': { cls: 'action-restored', icon: '↩️', label: 'Restored' }, 'dead': { cls: 'action-dead', icon: '💀', label: 'Dead' }, 'sold': { cls: 'action-sold', icon: '🏷️', label: 'Sold' }, 'removed': { cls: 'action-removed', icon: '🗑️', label: 'Removed' } };
-    const badge = badgeMap[action] || badgeMap['added'];
-    const actionLabel = action.charAt(0).toUpperCase() + action.slice(1);
+  tbody.innerHTML=paginatedData.map((e, idx)=>{
+    const action=(e.action||'').toLowerCase();
+    const actionTs=e.eventTs||0;
+    const days=ageDays(e.dateIn);
+    const ageTxt=days!==null?`${ageLabel(days).text} (${days}d)`:'—';
+    const wDiff=(e.currentWeight!=null&&e.originWeight!=null)?(parseFloat(e.currentWeight)-parseFloat(e.originWeight)).toFixed(1):null;
+    const wHtml=wDiff!==null?` <span class="wdiff ${parseFloat(wDiff)>=0?'pos':'neg'}">(${parseFloat(wDiff)>=0?'+':''}${wDiff}g)</span>`:'';
+    const {label:sLabel,bg:sBg,color:sColor}=histStatusStyle(e.weeklyStatus, action);
 
-    // Archived (sold / dead / removed): Restore + Delete. Active inventory: green badge.
-    let actionCell = '';
-    const isDeletedCrab = (window._deletedCrabs || []).some(d => d.id === c.id);
-    if (isDeletedCrab) {
-      actionCell = `<button class="tbl-btn success" title="Restore to healthy" onclick="restoreCrab('${c.id}','${c.boxNo||c.id}')" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">↩ Restore</button><button class="tbl-btn danger" title="Permanently delete" onclick="confirmDeleteRecord('${c.id}','${c.boxNo||c.id}',true)" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">🗑 Delete</button>`;
-    } else {
-      actionCell = `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.68rem;font-weight:700;background:#d4edda;color:#155724;">● Active</span>`;
+    let changeHtml='—';
+    if(action==='updated' && e.changes && Object.keys(e.changes).length){
+      const pills = Object.entries(e.changes).map(([f,{from,to}])=>{
+        const label = HIST_FIELD_LABELS[f]||f;
+        const fromStr = from!=null?String(from):'—';
+        const toStr   = to!=null?String(to):'—';
+        return `<span class="changelog-pill" title="${label}: ${fromStr} → ${toStr}">${label}: ${fromStr}→${toStr}</span>`;
+      }).join('');
+      changeHtml = `<div class="changelog-wrap">${pills}</div>`;
+    } else if(action!=='updated'){
+      changeHtml = '<span style="color:#ccc;font-size:.72rem;">—</span>';
     }
 
-    return `<tr><td class="bold">${c.boxNo || c.id || '—'}</td><td><span class="action-badge ${badge.cls}"><span class="badge-icon">${badge.icon}</span> ${actionLabel}</span></td><td>${c.crabType || '—'}</td><td>${c.crabClass ? 'Class ' + c.crabClass : '—'}</td><td>${cap(c.gender || '—')}</td><td>${c.location || '—'}</td><td class="hist-date">${c.dateIn || '—'}</td><td class="hist-date">${ageAtExit}</td><td class="hist-date">${c.originWeight != null ? c.originWeight + 'g' : '—'}</td><td class="hist-date">${c.currentWeight != null ? c.currentWeight + 'g' : '—'}${wHtml}</td><td class="hist-user">${c.addedBy || c.recordedBy || '—'}</td><td class="hist-date">${actionTs ? fmtDate(actionTs) : '—'}</td><td class="hist-user">${actionBy}</td><td style="min-width:58px;"><div style="display:flex;flex-direction:column;gap:3px;align-items:stretch;">${actionCell}</div></td></tr>`;
+    // Admin-only actions remain based on the actual record state (not the event itself)
+    const id=e.crabId||e.crabKey||e.id||null;
+    const boxNo=e.boxNo||'—';
+    const isDeletedCrab = id ? (window._deletedCrabs || []).some(d => d.id === id) : false;
+    const actionCell = (isDeletedCrab && id)
+      ? `<button class="tbl-btn success" title="Restore to healthy" onclick="restoreCrab('${id}','${boxNo}')" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">↩ Restore</button>
+         <button class="tbl-btn danger" title="Permanently delete" onclick="confirmDeleteRecord('${id}','${boxNo}',true)" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">🗑 Delete</button>`
+      : `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.68rem;font-weight:700;background:#d4edda;color:#155724;">● Active</span>`;
+
+    const seq = startIndex + idx + 1;
+    return `<tr class="row-${action||'added'}">
+      <td style="color:#94a3b8;font-size:.7rem;font-family:'DM Mono',monospace;">${seq}</td>
+      <td class="bold">${boxNo}</td>
+      <td><span class="action-badge action-${action||'added'}">${histActionLabel(action||'added')}</span></td>
+      <td>${e.crabType||'—'}</td>
+      <td>${e.crabClass?'Class '+e.crabClass:'—'}</td>
+      <td>${cap(e.gender||'—')}</td>
+      <td>${e.location||'—'}</td>
+      <td><span class="status-pill" style="background:${sBg};color:${sColor};">${sLabel}</span></td>
+      <td style="font-size:.75rem;">${e.dateIn||'—'}</td>
+      <td style="font-size:.75rem;">${ageTxt}</td>
+      <td style="font-size:.75rem;">${e.originWeight!=null?e.originWeight+'g':'—'}</td>
+      <td style="font-size:.75rem;">${e.currentWeight!=null?e.currentWeight+'g':'—'}${wHtml}</td>
+      <td style="font-size:.72rem;">${changeHtml}</td>
+      <td style="font-size:.72rem;color:#94a3b8;">${e.addedBy||'—'}</td>
+      <td style="font-size:.72rem;color:#334155;font-weight:600;">${e.eventBy||'—'}</td>
+      <td style="font-size:.72rem;color:#94a3b8;">${actionTs?fmtDate(actionTs):'—'}</td>
+      <td style="min-width:58px;"><div style="display:flex;flex-direction:column;gap:3px;align-items:stretch;">${actionCell}</div></td>
+    </tr>`;
   }).join('');
 
   updatePagination(data.length);
@@ -2757,7 +2693,7 @@ window.confirmDeleteRecord=(key,boxNo,isArchived)=>{
           const entriesToDelete = [];
           
           Object.entries(activityData).forEach(([activityKey, entry]) => {
-            if(entry && (entry.boxNo === boxNo || (entry.crabType && entry.crabType.includes(boxNo)))){
+            if(entry && entry.boxNo === boxNo){
               entriesToDelete.push(activityKey);
             }
           });
@@ -2782,53 +2718,51 @@ window.confirmDeleteRecord=(key,boxNo,isArchived)=>{
 };
 
 window.exportCSV=()=>{
-  // Create event-based history (same logic as filterHistory)
-  const events=[];
-  
-  // Process active crabs
-  Object.entries(window._allCrabs||{}).forEach(([id,v])=>{
-    const base={id,...v};
-    const addedTs = v.createdAt||v.addedAt||v.timestamp||0;
-    events.push({...base,_eventAction:'added',_eventTs:addedTs,_eventBy:v.addedBy||v.recordedBy||'—'});
-    if(v.updatedAt && Math.abs(v.updatedAt - addedTs) > 1000){
-      events.push({...base,_eventAction:'updated',_eventTs:v.updatedAt,_eventBy:v.updatedBy||'—'});
-    }
+  const data = window._filteredHistoryData || window._allEvents || [];
+  if(!data.length){ showToast('No data to export','error'); return; }
+
+  const fmtPlain = (ts)=>{
+    if(!ts) return '';
+    const d=new Date(ts);
+    return d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  };
+  const changesToStr = (ch)=>{
+    if(!ch || !Object.keys(ch).length) return '';
+    return Object.entries(ch).map(([f,{from,to}])=>{
+      const label = HIST_FIELD_LABELS[f] || f;
+      return `${label}: ${from??''}→${to??''}`;
+    }).join('; ');
+  };
+
+  const headers=['#','Box No.','Action','Type','Class','Gender','Location','Status','Date In','Age','Orig. Wt.','Curr. Wt.','Changes','Added By','Action By','Action At'];
+  const rows=data.map((e,i)=>{
+    const days=ageDays(e.dateIn);
+    const ageTxt=days!==null?`${ageLabel(days).text} (${days}d)`:''; 
+    return [
+      i+1,
+      e.boxNo||'',
+      e.action||'',
+      e.crabType||'',
+      e.crabClass?('Class '+e.crabClass):'',
+      e.gender||'',
+      e.location||'',
+      e.weeklyStatus||'',
+      e.dateIn||'',
+      ageTxt,
+      e.originWeight!=null?(e.originWeight+'g'):'',
+      e.currentWeight!=null?(e.currentWeight+'g'):'',
+      changesToStr(e.changes),
+      e.addedBy||'',
+      e.eventBy||'',
+      fmtPlain(e.eventTs)
+    ].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
   });
-  
-  // Process deleted crabs
-  Object.entries(window._deletedCrabs||{}).forEach(([id,v])=>{
-    const base={id,...v};
-    const addedTs = v.createdAt||v.addedAt||v.timestamp||0;
-    events.push({...base,_eventAction:'added',_eventTs:addedTs,_eventBy:v.addedBy||v.recordedBy||'—'});
-    if(v.updatedAt && Math.abs(v.updatedAt - addedTs) > 1000 &&
-       v.updatedAt !== v.soldAt && v.updatedAt !== v.diedAt && v.updatedAt !== v.removedAt){
-      events.push({...base,_eventAction:'updated',_eventTs:v.updatedAt,_eventBy:v.updatedBy||'—'});
-    }
-    if(v.restoredAt){
-      events.push({...base,_eventAction:'restored',_eventTs:v.restoredAt,_eventBy:v.restoredBy||v.updatedBy||'—'});
-    }
-    const st=(v.weeklyStatus||'').toLowerCase().replace(/\s+/g,'');
-    if(st==='sold'){
-      events.push({...base,_eventAction:'sold',_eventTs:v.soldAt||v.timestamp||0,_eventBy:v.soldBy||'—'});
-    } else if(st==='dead'){
-      events.push({...base,_eventAction:'dead',_eventTs:v.diedAt||v.removedAt||v.updatedAt||v.timestamp||0,_eventBy:v.diedBy||v.removedBy||v.updatedBy||'—'});
-    } else {
-      events.push({...base,_eventAction:'removed',_eventTs:v.removedAt||v.updatedAt||v.timestamp||0,_eventBy:v.removedBy||'—'});
-    }
-  });
-  
-  let data = events.sort((a,b)=>(b._eventTs||0)-(a._eventTs||0));
-  if(!data.length){showToast('No data to export','error');return;}
-  const headers=['Box No.','Action','Type','Class','Gender','Location','Date In','Orig. Wt.','Current Wt.','Added By','Action Date','Action By'];
-  const rows=data.map(c=>{
-    const action=c._eventAction;
-    const actionBy=c._eventBy||'—';
-    const actionTs=c._eventTs||c.timestamp;
-    const actionLabel=action.charAt(0).toUpperCase()+action.slice(1);
-    return[c.boxNo||c.id||'',actionLabel,c.crabType||'',c.crabClass?'Class '+c.crabClass:'',c.gender||'',c.location||'',c.dateIn||'',c.originWeight!=null?c.originWeight+'g':'',c.currentWeight!=null?c.currentWeight+'g':'',c.addedBy||c.recordedBy||'',actionTs?fmtDate(actionTs):'',actionBy].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
-  });
+
   const csv=[headers.join(','),...rows].join('\n');
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=`crab-records-${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`crab-activity-log-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
   showToast('📥 CSV exported!','success');
 };
 
