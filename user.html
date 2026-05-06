@@ -730,8 +730,8 @@
                     </div>
                     <div class="report-row">
                         <div class="report-group">
-                            <label for="reportLocation">Location (Optional)</label>
-                            <input type="text" id="reportLocation" placeholder="Filter by location...">
+                            <label for="reportOriginFilter">Crab Origin (Optional)</label>
+                            <input type="text" id="reportOriginFilter" placeholder="Filter by crab origin...">
                         </div>
                         <div class="report-group">
                             <label for="reportTypeFilter">Crab Type (Optional)</label>
@@ -771,9 +771,10 @@
                                     <th>Box No.</th>
                                     <th>Type</th>
                                     <th>Status</th>
-                                    <th>Location</th>
+                                    <th>Crab Origin</th>
                                     <th>Date In</th>
                                     <th>Date Sold</th>
+                                    <th>Mortality Date</th>
                                     <th>Origin Wt.</th>
                                     <th>Current Wt.</th>
                                     <th>Gender</th>
@@ -782,7 +783,7 @@
                             </thead>
                             <tbody id="reportTableBody">
                                 <tr>
-                                    <td colspan="10" class="empty-state">No data to display</td>
+                                    <td colspan="11" class="empty-state">No data to display</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1538,7 +1539,7 @@ window.showReportData = () => {
     const dateType = document.getElementById('reportDateType').value;
     const fromDate = document.getElementById('reportFromDate').value;
     const toDate = document.getElementById('reportToDate').value;
-    const locationFilter = document.getElementById('reportLocation').value.trim();
+    const originFilter = document.getElementById('reportOriginFilter').value.trim();
     const typeFilter = document.getElementById('reportTypeFilter').value;
     const genderFilter = document.getElementById('reportGenderFilter').value;
 
@@ -1583,7 +1584,7 @@ window.showReportData = () => {
             } else if (dateType === 'dateSold') {
                 relevantDate = c.soldAt ? new Date(c.soldAt) : null;
             } else if (dateType === 'dateDead') {
-                relevantDate = c.diedAt ? new Date(c.diedAt) : (c.updatedAt ? new Date(c.updatedAt) : null);
+                relevantDate = c.diedAt ? new Date(c.diedAt) : (c.removedAt ? new Date(c.removedAt) : (c.updatedAt ? new Date(c.updatedAt) : null));
             }
             return relevantDate && relevantDate >= from;
         });
@@ -1599,15 +1600,15 @@ window.showReportData = () => {
             } else if (dateType === 'dateSold') {
                 relevantDate = c.soldAt ? new Date(c.soldAt) : null;
             } else if (dateType === 'dateDead') {
-                relevantDate = c.diedAt ? new Date(c.diedAt) : (c.updatedAt ? new Date(c.updatedAt) : null);
+                relevantDate = c.diedAt ? new Date(c.diedAt) : (c.removedAt ? new Date(c.removedAt) : (c.updatedAt ? new Date(c.updatedAt) : null));
             }
             return relevantDate && relevantDate <= to;
         });
     }
 
-    // Apply location filter
-    if (locationFilter) {
-        data = data.filter(c => (c.location || '').toLowerCase().includes(locationFilter.toLowerCase()));
+    // Apply crab origin filter
+    if (originFilter) {
+        data = data.filter(c => (c.crabOrigin || '').toLowerCase().includes(originFilter.toLowerCase()));
     }
 
     // Apply type filter
@@ -1630,8 +1631,8 @@ window.showReportData = () => {
             dateA = a.soldAt ? new Date(a.soldAt) : new Date(0);
             dateB = b.soldAt ? new Date(b.soldAt) : new Date(0);
         } else if (dateType === 'dateDead') {
-            dateA = a.diedAt ? new Date(a.diedAt) : (a.updatedAt ? new Date(a.updatedAt) : new Date(0));
-            dateB = b.diedAt ? new Date(b.diedAt) : (b.updatedAt ? new Date(b.updatedAt) : new Date(0));
+            dateA = a.diedAt ? new Date(a.diedAt) : (a.removedAt ? new Date(a.removedAt) : (a.updatedAt ? new Date(a.updatedAt) : new Date(0)));
+            dateB = b.diedAt ? new Date(b.diedAt) : (b.removedAt ? new Date(b.removedAt) : (b.updatedAt ? new Date(b.updatedAt) : new Date(0)));
         }
         return dateB - dateA;
     });
@@ -1639,7 +1640,7 @@ window.showReportData = () => {
     // Store filtered data for PDF generation
     window._reportData = data;
     window._reportTitle = title;
-    window._reportFilters = { dateType, fromDate, toDate, locationFilter, typeFilter, genderFilter };
+    window._reportFilters = { dateType, fromDate, toDate, originFilter, typeFilter, genderFilter };
 
     // Display results
     displayReportResults(data, title);
@@ -1654,19 +1655,25 @@ function displayReportResults(data, title) {
     countSpan.textContent = `${data.length} record${data.length !== 1 ? 's' : ''} found`;
 
     if (data.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="10" class="empty-state">No data found matching your criteria</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="11" class="empty-state">No data found matching your criteria</td></tr>';
     } else {
         const rows = data.map(crab => {
             const dateSold = crab.soldAt ? new Date(crab.soldAt).toLocaleDateString() : '—';
             const dateIn = crab.dateIn ? new Date(crab.dateIn).toLocaleDateString() : '—';
+            const mortalityDate = crab.diedAt
+                ? new Date(crab.diedAt).toLocaleDateString()
+                : (crab.weeklyStatus === 'Dead' && (crab.removedAt || crab.updatedAt || crab.timestamp))
+                    ? new Date(crab.removedAt || crab.updatedAt || crab.timestamp).toLocaleDateString()
+                    : '—';
 
             return `<tr>
                 <td>${crab.boxNo || crab.id || '—'}</td>
                 <td>${crab.crabType || '—'}</td>
                 <td>${crab.weeklyStatus || '—'}</td>
-                <td>${crab.location || '—'}</td>
+                <td>${crab.crabOrigin || '—'}</td>
                 <td>${dateIn}</td>
                 <td>${dateSold}</td>
+                <td>${mortalityDate}</td>
                 <td>${crab.originWeight ? crab.originWeight + 'g' : '—'}</td>
                 <td>${crab.currentWeight ? crab.currentWeight + 'g' : '—'}</td>
                 <td>${crab.gender || '—'}</td>
@@ -1715,15 +1722,15 @@ window.downloadReportPDF = async () => {
     // Show applied filters
     let yPos = 65;
     if (filters.fromDate || filters.toDate) {
-        const dateTypeLabel = filters.dateType === 'dateIn' ? 'Date In' : 'Date Sold';
+        const dateTypeLabel = filters.dateType === 'dateIn' ? 'Date In' : (filters.dateType === 'dateDead' ? 'Mortality Date' : 'Date Sold');
         let dateRange = `${dateTypeLabel} Range: `;
         if (filters.fromDate) dateRange += `From ${new Date(filters.fromDate).toLocaleDateString()}`;
         if (filters.toDate) dateRange += ` To ${new Date(filters.toDate).toLocaleDateString()}`;
         doc.text(dateRange, 20, yPos);
         yPos += 10;
     }
-    if (filters.locationFilter) {
-        doc.text(`Location Filter: ${filters.locationFilter}`, 20, yPos);
+    if (filters.originFilter) {
+        doc.text(`Crab Origin Filter: ${filters.originFilter}`, 20, yPos);
         yPos += 10;
     }
     if (filters.typeFilter) {
@@ -1736,8 +1743,8 @@ window.downloadReportPDF = async () => {
     }
 
     // Table headers with adjusted column widths
-    const headers = ['Box No.', 'Type', 'Status', 'Location', 'Date In', 'Date Sold', 'Origin Wt.', 'Current Wt.', 'Gender', 'Class'];
-    const colWidths = [20, 15, 20, 25, 25, 25, 18, 18, 15, 15]; // Adjusted widths for better fit
+    const headers = ['Box No.', 'Type', 'Status', 'Crab Origin', 'Date In', 'Date Sold', 'Mortality', 'Origin Wt.', 'Current Wt.', 'Gender', 'Class'];
+    const colWidths = [18, 12, 16, 22, 16, 16, 16, 16, 16, 12, 12];
     let xPos = 20;
 
     doc.setFontSize(9);
@@ -1759,14 +1766,20 @@ window.downloadReportPDF = async () => {
 
         const dateSold = crab.soldAt ? new Date(crab.soldAt).toLocaleDateString() : '—';
         const dateIn = crab.dateIn ? new Date(crab.dateIn).toLocaleDateString() : '—';
+        const mortalityDate = crab.diedAt
+            ? new Date(crab.diedAt).toLocaleDateString()
+            : (crab.weeklyStatus === 'Dead' && (crab.removedAt || crab.updatedAt || crab.timestamp))
+                ? new Date(crab.removedAt || crab.updatedAt || crab.timestamp).toLocaleDateString()
+                : '—';
 
         const rowData = [
             crab.boxNo || crab.id || '—',
             crab.crabType || '—',
             crab.weeklyStatus || '—',
-            crab.location || '—',
+            crab.crabOrigin || '—',
             dateIn,
             dateSold,
+            mortalityDate,
             crab.originWeight ? crab.originWeight + 'g' : '—',
             crab.currentWeight ? crab.currentWeight + 'g' : '—',
             crab.gender || '—',
