@@ -1522,9 +1522,7 @@ function closeCrabModal(){ document.getElementById('crabModal').style.display='n
 window.closeCrabModal=closeCrabModal;
 window.onclick=e=>{ if(e.target===document.getElementById('crabModal'))closeCrabModal(); if(e.target===document.getElementById('statDetailModal'))closeStatDetailModal(); if(e.target===document.getElementById('allBoxesModal'))closeAllBoxesModal(); };
 
-/* ══════════════════════════════════════════════
-   REPORT GENERATION
-══════════════════════════════════════════════ */
+/*REPORT GENERATION*/
 window.showReportData = () => {
     const resultsDiv = document.getElementById('reportResults');
     const toggleBtn = document.getElementById('reportToggleBtn');
