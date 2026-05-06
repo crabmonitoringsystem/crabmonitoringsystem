@@ -2096,18 +2096,18 @@ onValue(ref(db,'deletedCrabs'),snap=>{
   // Also maintain _deleted for compatibility with existing admin functions
   window._deleted = window._deletedCrabs;
   refreshOverview();filterHistory();renderActivityFeed();
-  document.getElementById('tbHistory').textContent=window._deleted.length;
   // Immediately update Records count and Top Contributors when archived data arrives
   reRenderAll();
 });
 
-// Keep admin History in sync with user.html History (activityLog)
+// Same source as user.html History — tab badge = activityLog size (not archived count)
 onValue(ref(db,'activityLog'), snapshot => {
   const data = snapshot.val();
   window._allEvents = data
     ? Object.entries(data).map(([id, v]) => ({ id, ...v }))
     : [];
-  // Only re-filter when History tab is active to avoid unnecessary DOM churn
+  const tb = document.getElementById('tbHistory');
+  if (tb) tb.textContent = window._allEvents.length;
   const histTab = document.getElementById('tab-history');
   if (histTab && histTab.classList.contains('active')) filterHistory();
 });
@@ -2495,6 +2495,22 @@ function histStatusStyle(weeklyStatus, action){
   else if(st==='readytosell'){bg='#fef3c7';color='#92400e';}
   return { label, bg, color };
 }
+/** user.html writeLog does not store crabId — log row id is not deletedCrabs key; resolve by box + time. */
+function archivedCrabKeyForEvent(e){
+  const box=(e.boxNo||'').toUpperCase().trim();
+  if(!box) return null;
+  const cand=(window._deletedCrabs||[]).filter(d=>(d.boxNo||'').toUpperCase().trim()===box);
+  if(!cand.length) return null;
+  if(cand.length===1) return cand[0].id;
+  const ts=Number(e.eventTs)||0;
+  let best=cand[0], bestDiff=Infinity;
+  for(const d of cand){
+    const t=Number(d.soldAt||d.diedAt||d.removedAt||d.timestamp||0);
+    const diff=(t&&ts)?Math.abs(t-ts):Infinity;
+    if(diff<bestDiff){ bestDiff=diff; best=d; }
+  }
+  return best.id;
+}
 
 window.filterHistory=()=>{
   const q=(document.getElementById('histSearch')?.value||'').toLowerCase();
@@ -2509,6 +2525,7 @@ window.filterHistory=()=>{
   if(q) data=data.filter(e=>
     (e.boxNo||'').toLowerCase().includes(q)||
     (e.crabType||'').toLowerCase().includes(q)||
+    (e.crabOrigin||'').toLowerCase().includes(q)||
     (e.location||'').toLowerCase().includes(q)||
     (e.weeklyStatus||'').toLowerCase().includes(q)||
     (e.addedBy||'').toLowerCase().includes(q)||
@@ -2571,13 +2588,12 @@ window.renderHistoryTable = () => {
       changeHtml = '<span style="color:#ccc;font-size:.72rem;">—</span>';
     }
 
-    // Admin-only actions remain based on the actual record state (not the event itself)
-    const id=e.crabId||e.crabKey||e.id||null;
     const boxNo=e.boxNo||'—';
-    const isDeletedCrab = id ? (window._deletedCrabs || []).some(d => d.id === id) : false;
-    const actionCell = (isDeletedCrab && id)
-      ? `<button class="tbl-btn success" title="Restore to healthy" onclick="restoreCrab('${id}','${boxNo}')" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">↩ Restore</button>
-         <button class="tbl-btn danger" title="Permanently delete" onclick="confirmDeleteRecord('${id}','${boxNo}',true)" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">🗑 Delete</button>`
+    const archId=archivedCrabKeyForEvent(e);
+    const boxEsc=(boxNo||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const actionCell = archId
+      ? `<button class="tbl-btn success" title="Restore to healthy" onclick="restoreCrab('${archId}','${boxEsc}')" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">↩ Restore</button>
+         <button class="tbl-btn danger" title="Permanently delete" onclick="confirmDeleteRecord('${archId}','${boxEsc}',true)" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">🗑 Delete</button>`
       : `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.68rem;font-weight:700;background:#d4edda;color:#155724;">● Active</span>`;
 
     const seq = startIndex + idx + 1;
@@ -2658,61 +2674,46 @@ window.changeRowsPerPage = () => {
   renderHistoryTable();
 };
 
+async function purgeActivityLogForCrab(crab){
+  const { db, ref, get, set } = window._fb;
+  const box = crab?.boxNo || '';
+  const dateIn = crab?.dateIn || '';
+  if(!box) return 0;
+  try{
+    const snap = await get(ref(db,'activityLog'));
+    if(!snap.exists()) return 0;
+    const logs = snap.val() || {};
+    const keysToDelete = Object.entries(logs)
+      .filter(([,entry])=>{
+        if((entry?.boxNo||'') !== box) return false;
+        if(dateIn && (entry?.dateIn||'')) return (entry.dateIn === dateIn);
+        return true;
+      })
+      .map(([logKey])=>logKey);
+    if(!keysToDelete.length) return 0;
+    await Promise.all(keysToDelete.map(logKey=>set(ref(db,`activityLog/${logKey}`),null)));
+    return keysToDelete.length;
+  }catch(err){
+    console.warn('Failed to purge activityLog entries:', err);
+    return 0;
+  }
+}
+
 window.confirmDeleteRecord=(key,boxNo,isArchived)=>{
-  showConfirm(`Permanently delete record for <strong>${boxNo}</strong>? This cannot be undone and will also delete all history logs for this box number.`,async()=>{
-    const{db,ref,set,get}=window._fb;
+  showConfirm(`Permanently delete record for <strong>${boxNo}</strong>? This cannot be undone and will remove matching entries from the shared activity log (same as User History).`,async()=>{
+    const{db,ref,set}=window._fb;
     try{
-      const session = sessionStorage.getItem('crabMonitoringSession');
-      const adminUser = session ? JSON.parse(session).username : 'admin';
-      
+      const source = isArchived===false ? (window._allCrabs||[]) : (window._deletedCrabs||[]);
+      const crab = source.find(c=>c.id===key) || { id:key, boxNo };
+      const removedLogs = await purgeActivityLogForCrab(crab);
       if(isArchived===false){
-        // Get crab data before deletion for activity log
-        const snap = await get(ref(db, `crabs/${key}`));
-        if(snap.exists()){
-          const crabData = snap.val();
-          await writeActivityLog('deleted', boxNo, crabData, {}, adminUser, Date.now());
-        }
         await set(ref(db,`crabs/${key}`),null);
       } else {
-        // Get deleted crab data before deletion for activity log
-        const snap = await get(ref(db, `deletedCrabs/${key}`));
-        if(snap.exists()){
-          const crabData = snap.val();
-          await writeActivityLog('deleted', boxNo, crabData, {}, adminUser, Date.now());
-        }
         await set(ref(db,`deletedCrabs/${key}`),null);
-        // Keep history consistent: remove persisted restore events for this crab too
         await set(ref(db,`restoreHistory/${key}`),null);
       }
-      
-      // Also delete ALL activity log entries from user.html for this box number
-      try{
-        const activitySnap = await get(ref(db, 'activityLog'));
-        if(activitySnap.exists()){
-          const activityData = activitySnap.val();
-          const entriesToDelete = [];
-          
-          Object.entries(activityData).forEach(([activityKey, entry]) => {
-            if(entry && entry.boxNo === boxNo){
-              entriesToDelete.push(activityKey);
-            }
-          });
-          
-          // Delete all matching activity log entries
-          for(const activityKey of entriesToDelete){
-            await set(ref(db, `activityLog/${activityKey}`), null);
-          }
-          
-          if(entriesToDelete.length > 0){
-            console.log(`Deleted ${entriesToDelete.length} history entries for box ${boxNo}`);
-          }
-        }
-      }catch(historyError){
-        console.error('Error deleting activity log entries:', historyError);
-        // Don't fail the main delete operation if history deletion fails
-      }
-      
-      showToast(`${boxNo} deleted (including all history)`,'info');
+      showToast(`${boxNo} deleted${removedLogs?` • ${removedLogs} log entr${removedLogs!==1?'ies':'y'} removed`:''}`,'info');
+      if (typeof filterHistory === 'function') filterHistory();
     }catch(e){showToast(e.message,'error');}
   });
 };
