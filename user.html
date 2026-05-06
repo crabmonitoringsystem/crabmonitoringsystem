@@ -1647,6 +1647,14 @@ window.showReportData = () => {
     if (toggleBtn) toggleBtn.textContent = 'Close';
 };
 
+function reportMortalityDisplay(crab){
+    const isDead = (crab.weeklyStatus || '').toLowerCase() === 'dead';
+    if (crab.diedAt) return new Date(crab.diedAt).toLocaleDateString();
+    if (isDead && (crab.removedAt || crab.updatedAt || crab.timestamp))
+        return new Date(crab.removedAt || crab.updatedAt || crab.timestamp).toLocaleDateString();
+    return '—';
+}
+
 function displayReportResults(data, title) {
     const resultsDiv = document.getElementById('reportResults');
     const countSpan = document.getElementById('reportCount');
@@ -1660,11 +1668,7 @@ function displayReportResults(data, title) {
         const rows = data.map(crab => {
             const dateSold = crab.soldAt ? new Date(crab.soldAt).toLocaleDateString() : '—';
             const dateIn = crab.dateIn ? new Date(crab.dateIn).toLocaleDateString() : '—';
-            const mortalityDate = crab.diedAt
-                ? new Date(crab.diedAt).toLocaleDateString()
-                : (crab.weeklyStatus === 'Dead' && (crab.removedAt || crab.updatedAt || crab.timestamp))
-                    ? new Date(crab.removedAt || crab.updatedAt || crab.timestamp).toLocaleDateString()
-                    : '—';
+            const mortalityDate = reportMortalityDisplay(crab);
 
             return `<tr>
                 <td>${crab.boxNo || crab.id || '—'}</td>
@@ -1709,68 +1713,92 @@ window.downloadReportPDF = async () => {
     }
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    // Landscape A4 — matches on-screen Summary of Inventory (11 columns)
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 8;
+    const tableLeft = margin;
+    const tableW = pageW - margin * 2;
+    const headers = ['Box No.', 'Type', 'Status', 'Crab Origin', 'Date In', 'Date Sold', 'Mortality Date', 'Orig.Wt.', 'Curr.Wt.', 'Gender', 'Class'];
+    const colFracs = [0.09, 0.065, 0.09, 0.195, 0.085, 0.085, 0.09, 0.075, 0.075, 0.075, 0.075];
+    const colWidths = colFracs.map(f => f * tableW);
+    const rowH = 5.2;
+    const headerYBoost = 6;
+    const maxY = pageH - margin;
 
-    // Generate PDF
-    doc.setFontSize(20);
-    doc.text(title, 20, 30);
-
-    doc.setFontSize(12);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 20, 45);
-    doc.text(`Total Records: ${data.length}`, 20, 55);
-
-    // Show applied filters
-    let yPos = 65;
-    if (filters.fromDate || filters.toDate) {
-        const dateTypeLabel = filters.dateType === 'dateIn' ? 'Date In' : (filters.dateType === 'dateDead' ? 'Mortality Date' : 'Date Sold');
-        let dateRange = `${dateTypeLabel} Range: `;
-        if (filters.fromDate) dateRange += `From ${new Date(filters.fromDate).toLocaleDateString()}`;
-        if (filters.toDate) dateRange += ` To ${new Date(filters.toDate).toLocaleDateString()}`;
-        doc.text(dateRange, 20, yPos);
-        yPos += 10;
-    }
-    if (filters.originFilter) {
-        doc.text(`Crab Origin Filter: ${filters.originFilter}`, 20, yPos);
-        yPos += 10;
-    }
-    if (filters.typeFilter) {
-        doc.text(`Crab Type Filter: ${filters.typeFilter}`, 20, yPos);  
-        yPos += 10;
-    }
-    if (filters.genderFilter) {
-        doc.text(`Gender Filter: ${capitalize(filters.genderFilter)}`, 20, yPos);
-        yPos += 10;
+    function colX(i){
+        let x = tableLeft;
+        for (let j = 0; j < i; j++) x += colWidths[j];
+        return x;
     }
 
-    // Table headers with adjusted column widths
-    const headers = ['Box No.', 'Type', 'Status', 'Crab Origin', 'Date In', 'Date Sold', 'Mortality', 'Origin Wt.', 'Current Wt.', 'Gender', 'Class'];
-    const colWidths = [18, 12, 16, 22, 16, 16, 16, 16, 16, 12, 12];
-    let xPos = 20;
+    function truncateForCol(text, colIndex){
+        const w = colWidths[colIndex];
+        const maxChars = Math.max(4, Math.floor(w / 1.8));
+        const s = String(text);
+        return s.length > maxChars ? s.slice(0, maxChars - 2) + '…' : s;
+    }
 
-    doc.setFontSize(9);
+    function drawHeaderRow(y){
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        headers.forEach((h, i) => {
+            doc.text(truncateForCol(h, i), colX(i) + 0.5, y);
+        });
+        doc.setFont('helvetica', 'normal');
+        return y + headerYBoost;
+    }
+
+    let yPos = margin + 6;
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    headers.forEach((header, index) => {
-        doc.text(header, xPos, yPos);
-        xPos += colWidths[index];
-    });
-
+    doc.text(title, margin, yPos);
     doc.setFont('helvetica', 'normal');
     yPos += 8;
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, margin, yPos);
+    yPos += 6;
+    doc.text(`Total records: ${data.length}`, margin, yPos);
+    yPos += 7;
 
-    // Table data with adjusted column positions
-    data.forEach((crab, index) => {
-        if (yPos > 270) { // New page if needed
+    doc.setFontSize(9);
+    if (filters.fromDate || filters.toDate) {
+        const dateTypeLabel = filters.dateType === 'dateIn' ? 'Date In' : (filters.dateType === 'dateDead' ? 'Mortality Date' : 'Date Sold');
+        let dateRange = `${dateTypeLabel} range: `;
+        if (filters.fromDate) dateRange += `from ${new Date(filters.fromDate).toLocaleDateString()}`;
+        if (filters.toDate) dateRange += ` to ${new Date(filters.toDate).toLocaleDateString()}`;
+        doc.text(dateRange, margin, yPos);
+        yPos += 5;
+    }
+    if (filters.originFilter) {
+        doc.text(`Crab origin filter: ${filters.originFilter}`, margin, yPos);
+        yPos += 5;
+    }
+    if (filters.typeFilter) {
+        doc.text(`Crab type filter: ${filters.typeFilter}`, margin, yPos);
+        yPos += 5;
+    }
+    if (filters.genderFilter) {
+        doc.text(`Gender filter: ${capitalize(filters.genderFilter)}`, margin, yPos);
+        yPos += 5;
+    }
+
+    yPos += 3;
+    yPos = drawHeaderRow(yPos);
+    doc.setFontSize(7.5);
+
+    data.forEach(crab => {
+        if (yPos + rowH > maxY) {
             doc.addPage();
-            yPos = 30;
+            yPos = margin + 4;
+            yPos = drawHeaderRow(yPos);
+            doc.setFontSize(7.5);
         }
 
         const dateSold = crab.soldAt ? new Date(crab.soldAt).toLocaleDateString() : '—';
         const dateIn = crab.dateIn ? new Date(crab.dateIn).toLocaleDateString() : '—';
-        const mortalityDate = crab.diedAt
-            ? new Date(crab.diedAt).toLocaleDateString()
-            : (crab.weeklyStatus === 'Dead' && (crab.removedAt || crab.updatedAt || crab.timestamp))
-                ? new Date(crab.removedAt || crab.updatedAt || crab.timestamp).toLocaleDateString()
-                : '—';
+        const mortalityDate = reportMortalityDisplay(crab);
 
         const rowData = [
             crab.boxNo || crab.id || '—',
@@ -1780,27 +1808,18 @@ window.downloadReportPDF = async () => {
             dateIn,
             dateSold,
             mortalityDate,
-            crab.originWeight ? crab.originWeight + 'g' : '—',
-            crab.currentWeight ? crab.currentWeight + 'g' : '—',
+            crab.originWeight != null ? crab.originWeight + 'g' : '—',
+            crab.currentWeight != null ? crab.currentWeight + 'g' : '—',
             crab.gender || '—',
             crab.crabClass ? 'Class ' + crab.crabClass : '—'
         ];
 
-        xPos = 20;
         rowData.forEach((cell, cellIndex) => {
-            // Truncate long text if needed
-            let cellText = String(cell);
-            if (cellText.length > 12 && colWidths[cellIndex] < 20) {
-                cellText = cellText.substring(0, 10) + '...';
-            }
-            doc.text(cellText, xPos, yPos);
-            xPos += colWidths[cellIndex];
+            doc.text(truncateForCol(cell, cellIndex), colX(cellIndex) + 0.5, yPos);
         });
-
-        yPos += 6;
+        yPos += rowH;
     });
 
-    // Save the PDF
     const filename = `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(filename);
 
