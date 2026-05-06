@@ -1305,6 +1305,8 @@ document.getElementById('crabDataForm').addEventListener('submit', async e=>{
                 createdAt:existing.createdAt||existing.timestamp||now,
                 addedBy:existing.addedBy||existing.recordedBy||currentUser,
                 updatedAt:now, updatedBy:currentUser,
+                restoredAt: existing.restoredAt ?? null,
+                restoredBy: existing.restoredBy ?? null,
                 ...(isDead?{diedAt:prevDead?(existing.diedAt||now):now, diedBy:prevDead?(existing.diedBy||currentUser):currentUser}:{})
             };
 
