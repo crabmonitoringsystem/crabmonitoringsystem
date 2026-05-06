@@ -1414,7 +1414,7 @@ body.authenticated .header { display:block !important; }
     <div class="history-controls">
       <div class="history-search-box"><input type="text" id="histSearch" placeholder="🔍 Search by box, type, location, recorded by..." oninput="filterHistory()"></div>
       <div class="filter-group">
-        <select id="histAction" onchange="filterHistory()"><option value="">All Actions</option><option value="added">➕ Added</option><option value="updated">✏️ Updated</option><option value="sold">🏷️ Sold</option><option value="dead">💀 Dead</option><option value="removed">🗑️ Removed</option></select>
+        <select id="histAction" onchange="filterHistory()"><option value="">All Actions</option><option value="added">➕ Added</option><option value="updated">✏️ Updated</option><option value="restored">↩️ Restored</option><option value="sold">🏷️ Sold</option><option value="dead">💀 Dead</option><option value="removed">🗑️ Removed</option></select>
         <select id="histType" onchange="filterHistory()"><option value="">All Types</option><option value="SS">SS – King Crab</option><option value="SO">SO – Orange/Red</option><option value="ST">ST – Purple</option></select>
         <select id="histSort" onchange="filterHistory()"><option value="newest">Newest First</option><option value="oldest">Oldest First</option><option value="box">Box No.</option></select>
         <button class="btn btn-primary btn-export-small" onclick="exportCSV()">⬇️ Export</button>
@@ -2554,8 +2554,9 @@ window.renderHistoryTable = () => {
 
     const boxNo=e.boxNo||'—';
     const archId=archivedCrabKeyForEvent(e);
+    const boxEsc=(boxNo||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const actionCell = archId
-      ? `<button class="tbl-btn danger" title="Permanently delete" onclick="confirmDeleteRecord('${archId}','${boxNo}',true)" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;">🗑 Delete</button>`
+      ? `<button class="tbl-btn success" title="Restore to healthy" onclick="restoreCrab('${archId}','${boxEsc}')" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">↩ Restore</button><button class="tbl-btn danger" title="Permanently delete" onclick="confirmDeleteRecord('${archId}','${boxEsc}',true)" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">🗑 Delete</button>`
       : `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.68rem;font-weight:700;background:#d4edda;color:#155724;">● Active</span>`;
 
     const seq = startIndex + idx + 1;
@@ -2634,6 +2635,104 @@ window.goToPage = (page) => {
 window.changeRowsPerPage = () => {
   window._currentPage = 1;
   renderHistoryTable();
+};
+
+async function writeActivityLog(action, boxNo, snapshot, changes, eventBy, eventTs) {
+  const { db, ref, push } = window._fb;
+  try {
+    await push(ref(db, 'activityLog'), {
+      action,
+      boxNo,
+      eventBy,
+      eventTs: eventTs || Date.now(),
+      changes: changes || {},
+      dateIn: snapshot.dateIn || null,
+      crabOrigin: snapshot.crabOrigin || null,
+      gender: snapshot.gender || null,
+      crabType: snapshot.crabType || null,
+      crabClass: snapshot.crabClass || null,
+      originWeight: snapshot.originWeight != null ? snapshot.originWeight : null,
+      currentWeight: snapshot.currentWeight != null ? snapshot.currentWeight : null,
+      weeklyStatus: snapshot.weeklyStatus || null,
+      location: snapshot.location || null,
+      notes: snapshot.notes || null,
+      addedBy: snapshot.addedBy || snapshot.recordedBy || null,
+      createdAt: snapshot.createdAt || snapshot.timestamp || null,
+    });
+  } catch(err) { console.warn('activityLog write failed:', err); }
+}
+
+window.restoreCrab = async (crabId, boxNo) => {
+  const { db, ref, set, get } = window._fb;
+  try {
+    const snap = await get(ref(db, `deletedCrabs/${crabId}`));
+    if (!snap.exists()) {
+      showToast('Crab record not found', 'error');
+      return;
+    }
+    const preview = snap.val();
+    const st = (preview.weeklyStatus || '').toLowerCase().replace(/\s+/g, '');
+    const kind =
+      preview.weeklyStatus === 'Sold' || st === 'sold' ? 'sold' :
+      preview.weeklyStatus === 'Dead' || st === 'dead' ? 'dead' :
+      'removed';
+    const kindPhrase = kind === 'sold' ? 'sold' : kind === 'dead' ? 'dead' : 'removed';
+    showConfirm(`Restore <strong>${boxNo}</strong> (${kindPhrase}) to <strong>healthy</strong>? This moves the crab back into active inventory.`, async () => {
+      try {
+        const snap2 = await get(ref(db, `deletedCrabs/${crabId}`));
+        if (!snap2.exists()) {
+          showToast('Crab record not found', 'error');
+          return;
+        }
+        const crabData = snap2.val();
+        const session = sessionStorage.getItem('crabMonitoringSession');
+        const adminUser = session ? JSON.parse(session).username : 'admin';
+        const now = Date.now();
+        const prevUH = Array.isArray(crabData.updateHistory) ? crabData.updateHistory : (crabData.updateHistory ? Object.values(crabData.updateHistory) : []);
+        const restoreEntry = {
+          ts: now,
+          by: adminUser,
+          action: 'restored',
+          weeklyStatus: 'healthy'
+        };
+        const restoredCrab = {
+          ...crabData,
+          weeklyStatus: 'healthy',
+          soldAt: null,
+          soldBy: null,
+          diedAt: null,
+          diedBy: null,
+          removedAt: null,
+          removedBy: null,
+          restoredAt: now,
+          restoredBy: adminUser,
+          updatedAt: now,
+          updatedBy: adminUser,
+          updateHistory: [...prevUH, restoreEntry]
+        };
+        await set(ref(db, `crabs/${crabId}`), restoredCrab);
+        await set(ref(db, `restoreHistory/${crabId}/${now}`), {
+          ts: now,
+          by: adminUser,
+          boxNo: crabData.boxNo || boxNo || crabId,
+          crabType: crabData.crabType || '',
+          crabClass: crabData.crabClass || '',
+          gender: crabData.gender || '',
+          location: crabData.location || '',
+          dateIn: crabData.dateIn || ''
+        });
+        await set(ref(db, `deletedCrabs/${crabId}`), null);
+        await writeActivityLog('restored', boxNo, restoredCrab, {}, adminUser, now);
+        if (typeof filterHistory === 'function') filterHistory();
+        showToast(`${boxNo} restored to healthy status`, 'success');
+      } catch (e) {
+        console.error('Restore error:', e);
+        showToast('Error restoring crab: ' + e.message, 'error');
+      }
+    });
+  } catch (e) {
+    showToast(e.message || 'Could not load record', 'error');
+  }
 };
 
 async function purgeActivityLogForCrab(crab){
