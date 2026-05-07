@@ -25,11 +25,11 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .status-dot.connecting { background: #facc15; animation: pulse 1s infinite; }
 @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
 
-/* Profile avatar with photo support */
+/* Profile avatar with photo */
 .profile-avatar { background-size: cover; background-position: center; background-repeat: no-repeat; }
 .profile-avatar.has-photo { color: transparent; }
 
-/* ── HAMBURGER MENU (mobile only) ── */
+/* ── HAMBURGER (mobile only) ── */
 .hamburger-btn { display: none; position: relative; width: 32px; height: 32px; border-radius: 6px; background: transparent; border: 2px solid rgba(255,255,255,0.3); cursor: pointer; transition: all 0.3s; padding: 6px 5px; flex-shrink: 0; flex-direction: column; justify-content: space-between; align-items: center; }
 .hamburger-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.5); }
 .hamburger-btn:active { background: rgba(255,255,255,0.25); }
@@ -340,7 +340,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .empty-state { text-align: center; padding: 2.5rem; color: #bbb; }
 .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
 
-/* ── Edit User Modal Info Banner ── */
+/* ── Edit User Modal ── */
 .user-info-banner {
   display: flex; align-items: center; gap: 1rem;
   padding: 0.85rem 1rem;
@@ -372,7 +372,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   .nav-tab { padding:0.7rem 0.9rem; font-size:0.82rem; }
   .main-container { padding: 90px 1rem 1rem; margin: 0 auto; }
   
-  /* Mobile responsive login modal */
+  /* Mobile login modal */
   .auth-box {
     width: 95%;
     max-width: none;
@@ -490,7 +490,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   }
 }
 
-/* Mobile view for dashboard elements */
+/* Mobile view for dashboard */
 @media(max-width:768px){
   .header-content { flex-direction: row !important; gap: 0.5rem !important; text-align: left !important; padding: 0.75rem 1rem !important; justify-content: space-between !important; }
   .logo-section { flex: 0 0 auto !important; display: flex !important; align-items: center !important; margin-left: -40px; gap: 0.25rem; }
@@ -665,7 +665,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   .tbl-btn { min-height: 28px; min-width: 28px; font-size: 0.7rem; }
 }
 
-/* ══ AUTH MODAL STYLES — Ocean Dark Glass ══ */
+
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
 
 .auth-modal-overlay {
@@ -732,7 +732,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   100% { transform: translateY(-100vh) scale(1); opacity: 0; }
 }
 
-/* Additional floating bubbles */
+/*floating bubbles */
 .auth-particle::before {
   content: '';
   position: absolute;
@@ -745,7 +745,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   animation: shimmer 3s ease-in-out infinite;
 }
 
-/* Additional bubble effects */
+/* bubble effects */
 .auth-particle::after {
   content: '';
   position: absolute;
@@ -769,7 +769,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
   50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.1); }
 }
 
-/* Small floating particles */
+
 .auth-small-particle {
   position: absolute;
   width: 4px;
@@ -1151,7 +1151,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 body.authenticated .main-container { display:block !important; }
 body.authenticated .header { display:block !important; }
 
-/* Inventory Summary Styles */
+/* Inventory Summary */
 .inventory-summary-card { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 1.5rem; }
 .inventory-form { display: flex; flex-direction: column; gap: 1rem; }
 .inventory-form-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; align-items: end; }
@@ -1167,7 +1167,7 @@ body.authenticated .header { display:block !important; }
 .inventory-result-label { font-weight: 600; color: #444; }
 .inventory-result-value { font-weight: 700; color: #667eea; font-size: 1.1rem; }
 
-/* Inventory Results Table */
+/* Inventory Results */
 .inventory-results-card { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); overflow: hidden; }
 .inventory-results-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
 .inventory-results-title { font-weight: 600; font-size: 1rem; }
@@ -1208,7 +1208,7 @@ body.authenticated .header { display:block !important; }
   </div>
 </div>
 
-<!-- AUTH MODAL -->
+
 <div class="auth-modal-overlay" id="authOverlay">
   <div class="auth-particles" id="authParticles"></div>
   <div class="auth-box">
@@ -1265,7 +1265,7 @@ body.authenticated .header { display:block !important; }
   </div>
 </div>
 
-<!-- HEADER -->
+
 <header class="header">
   <div class="header-content">
     <div class="logo-section">
@@ -1358,7 +1358,7 @@ body.authenticated .header { display:block !important; }
       <div class="card"><div class="card-header"><span>Crab Type Breakdown</span></div><div class="card-content" id="typeBreakdown"><div class="empty-state"><div class="empty-icon">⏳</div>Loading...</div></div></div>
     </div>
 
-    <!-- INVENTORY SUMMARY -->
+    <!-- INVENTORY -->
     <div class="stats-section-label">📊 Summary of Inventory</div>
     <div class="inventory-summary-card">
       <div class="inventory-form">
@@ -1377,7 +1377,6 @@ body.authenticated .header { display:block !important; }
             <label>Date Type</label>
             <select id="invDateType">
               <option value="dateIn">Date In</option>
-              <option value="createdAt">Created Date</option>
               <option value="soldAt">Sold Date</option>
               <option value="diedAt">Mortality Date</option>
             </select>
@@ -1499,7 +1498,7 @@ body.authenticated .header { display:block !important; }
   </div>
 </footer>
 
-<!-- PROFILE MODAL -->
+<!-- PROFILE -->
 <div id="profileModal" class="modal">
   <div class="modal-content">
     <div class="modal-hd">
@@ -1538,10 +1537,10 @@ body.authenticated .header { display:block !important; }
   </div>
 </div>
 
-<!-- STAT DETAIL MODAL -->
+<!-- STAT DETAIL -->
 <div id="statDetailModal" class="modal"><div class="modal-content wide"><div class="modal-hd"><div class="modal-title" id="statModalTitle">Detail</div><button class="close" onclick="closeModal('statDetailModal')">&times;</button></div><div class="modal-search" style="display:flex;gap:0.5rem;"><input type="text" id="statDetailSearch" placeholder="🔍 Search by Box No., Type, Location, Gender..." oninput="filterStatDetail()" style="flex:1;"><select id="statDetailMonthFilter" onchange="filterStatDetail()" style="padding:0.3rem 0.5rem;border:1px solid #ddd;border-radius:4px;font-size:0.75rem;cursor:pointer;"><option value="">All Months</option></select></div><div class="modal-scroll" id="statDetailBody"><div class="empty-state">Loading...</div></div></div></div>
 
-<!-- ADMIN DETAIL MODAL -->
+<!-- ADMIN DETAIL -->
 <div id="adminDetailModal" class="modal">
   <div class="modal-content wide">
     <div class="modal-hd"><div class="modal-title" id="admModalTitle">Detail</div><button class="close" onclick="closeModal('adminDetailModal')">&times;</button></div>
@@ -1549,10 +1548,10 @@ body.authenticated .header { display:block !important; }
   </div>
 </div>
 
-<!-- ADD USER MODAL -->
+<!-- ADD USER -->
 <div id="addUserModal" class="modal"><div class="modal-content"><div class="modal-hd"><div class="modal-title">➕ Add New User</div><button class="close" onclick="closeModal('addUserModal')">&times;</button></div><div class="modal-bd"><div class="form-row"><div class="form-group"><label>Full Name</label><input type="text" id="newUserName" placeholder="e.g. Juan dela Cruz"></div><div class="form-group"><label>Username</label><input type="text" id="newUserUsername" placeholder="e.g. juandc"></div></div><div class="form-row"><div class="form-group"><label>Password</label><input type="password" id="newUserPassword" placeholder="••••••••"></div><div class="form-group"><label>Role</label><select id="newUserRole"><option value="monitor1">Monitor 1</option><option value="monitor2">Monitor 2</option><option value="monitor3">Monitor 3</option><option value="monitor4">Monitor 4</option><option value="monitor5">Monitor 5</option><option value="monitor6">Monitor 6</option><option value="monitor7">Monitor 7</option><option value="monitor8">Monitor 8</option><option value="monitor9">Monitor 9</option><option value="monitor10">Monitor 10</option><option value="admin">Admin</option></select></div></div></div><div class="modal-ft"><button class="btn btn-secondary" onclick="closeModal('addUserModal')">Cancel</button><button class="btn btn-primary" onclick="saveNewUser()">💾 Create User</button></div></div></div>
 
-<!-- EDIT USER MODAL -->
+<!-- EDIT USER -->
 <div id="editUserModal" class="modal">
   <div class="modal-content">
     <div class="modal-hd"><div class="modal-title">✏️ Edit User</div><button class="close" onclick="closeModal('editUserModal')">&times;</button></div>
@@ -1594,13 +1593,13 @@ body.authenticated .header { display:block !important; }
   </div>
 </div>
 
-<!-- CONFIRM MODAL -->
+<!-- CONFIRM -->
 <div id="confirmModal" class="modal"><div class="modal-content"><div class="modal-hd" style="background:linear-gradient(135deg,#dc3545 0%,#a71d2a 100%);"><div class="modal-title">⚠️ Confirm Action</div><button class="close" onclick="closeModal('confirmModal')">&times;</button></div><div class="modal-bd"><p id="confirmMessage" style="font-size:0.9rem;line-height:1.6;color:#555;"></p></div><div class="modal-ft"><button class="btn btn-secondary" onclick="closeModal('confirmModal')">Cancel</button><button class="btn btn-danger" id="confirmOkBtn">Confirm</button></div></div></div>
 
-<!-- CHANGE PASSWORD MODAL -->
+<!-- CHANGE PASSWORD -->
 <div id="changePasswordModal" class="modal"><div class="modal-content"><div class="modal-hd"><div class="modal-title">🔑 Change Password</div><button class="close" onclick="closeModal('changePasswordModal')">&times;</button></div><div class="modal-bd"><div style="margin-bottom:1rem;padding:0.75rem 1rem;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:8px;font-size:0.85rem;color:#4338ca;">Changing password for: <strong id="cpUsername">—</strong></div><div class="form-group"><label>New Password</label><input type="password" id="cpNewPassword" placeholder="Enter new password"></div><div class="form-group"><label>Confirm New Password</label><input type="password" id="cpConfirmPassword" placeholder="Re-enter new password"></div><div id="cpMsg" style="display:none;padding:0.6rem 0.9rem;border-radius:8px;font-size:0.82rem;margin-top:0.5rem;"></div></div><div class="modal-ft"><button class="btn btn-secondary" onclick="closeModal('changePasswordModal')">Cancel</button><button class="btn btn-primary" onclick="doChangePassword()">🔑 Update Password</button></div></div></div>
 
-<!-- BOX MONITOR MODAL -->
+<!-- BOX MONITOR -->
 <div id="boxMonitorModal" class="modal">
   <div class="modal-content wide">
     <div class="modal-hd">
@@ -1626,7 +1625,7 @@ body.authenticated .header { display:block !important; }
   </div>
 </div>
 
-<!-- BOX DETAIL MODAL -->
+<!-- BOX DETAIL -->
 <div id="boxDetailModal" class="modal">
   <div class="modal-content" style="max-width:380px;">
     <div class="modal-hd" id="boxDetailHd"><div class="modal-title" id="boxDetailTitle">Box —</div><button class="close" onclick="closeModal('boxDetailModal')">&times;</button></div>
@@ -1736,7 +1735,7 @@ window.showBoxDetail = function(boxNo) {
 
 <div class="toast" id="toast"></div>
 
-<!-- AUTH LOGIC -->
+
 <script>
 (function(){
   const s=sessionStorage.getItem('crabMonitoringSession');
@@ -1833,7 +1832,7 @@ function completeLogin(session){
     document.getElementById('authOverlay').classList.remove('visible');
     document.getElementById('userName').textContent=session.name||session.username;
     document.getElementById('userRole').textContent=(session.role||'').charAt(0).toUpperCase()+(session.role||'').slice(1)||'Administrator';
-    // Apply avatar to header
+    // Apply avatar 
     setTimeout(()=>{ if(window._applyAvatarToEl){ _applyAvatarToEl(document.getElementById('headerProfileAvatar'),session); } },800);
     setTimeout(()=>{ if(window._applyAvatarToEl){ _applyAvatarToEl(document.getElementById('profileAvatar'),session); } },800);
     // Mark user as logged in (Online) in Firebase - delay to ensure users are loaded
@@ -1846,13 +1845,13 @@ function completeLogin(session){
     showToast('Login completed with warnings','info');
   }
 }
-// Set isLoggedIn flag on the Firebase user record
+
 function _setLoginFlag(username, flag){
-  // Retry a few times since Firebase module may not be ready yet
+ 
   let attempts=0;
   const trySet=()=>{
     if(!window._fb){if(attempts++<10)setTimeout(trySet,400);return;}
-    // Special admin user has no Firebase record — skip
+  
     if(username==='admin') return;
     const users=window._users||[];
     const matched=users.find(u=>u.username===username);
@@ -1864,7 +1863,7 @@ function _setLoginFlag(username, flag){
       }).then(()=>console.log('Firebase update successful for:', username)).catch((e)=>console.error('Firebase update failed:', e));
     } else {
       console.log('User not found in window._users, fetching from Firebase directly...');
-      // User not found in window._users yet, try to fetch from Firebase directly
+      
       window._fb.get(window._fb.ref(window._fb.db,'users')).then(snap=>{
         if(snap.exists()){
           const userData=snap.val();
@@ -1994,7 +1993,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 window.doLogout=()=>{
   stopHeartbeat();
-  // Mark offline BEFORE clearing session so we still know who to update
+  // Mark offline to know who to update
   try{
     const raw=sessionStorage.getItem('crabMonitoringSession');
     if(raw){
@@ -2011,12 +2010,12 @@ window.doLogout=()=>{
     }
   }catch(e){}
   sessionStorage.removeItem('crabMonitoringSession');
-  // Small delay so Firebase write can go through before reload
+  // Small delay
   setTimeout(()=>window.location.reload(), 300);
 };
 </script>
 
-<!-- FIREBASE + MAIN LOGIC -->
+<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getDatabase, ref, set, push, onValue, get, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
@@ -2052,15 +2051,15 @@ function deriveAction(c,isDeleted){
   const st=(c.weeklyStatus||'').toLowerCase();
   if(st==='dead')return'Dead';
   if(st==='ready to sell')return'Ready to Sell';
-  // Check if crab was updated - updatedAt exists and is different from timestamp, or if there are updatedBy/updated fields
+  // Check if crab was updated 
   if(c.updatedAt && (c.updatedAt !== c.timestamp || c.updatedBy || c.updatedAt > c.timestamp))return'Updated';
   return'Added';
 }
 const ACTION_CONFIG={'Added':{icon:'➕',iconCls:'fi-added',badgeCls:'fab-added',label:'Added'},'Updated':{icon:'✏️',iconCls:'fi-updated',badgeCls:'fab-updated',label:'Updated'},'Dead':{icon:'💀',iconCls:'fi-dead',badgeCls:'fab-dead',label:'Dead'},'Ready to Sell':{icon:'💰',iconCls:'fi-sell',badgeCls:'fab-sell',label:'Ready to Sell'},'Sold':{icon:'🏷️',iconCls:'fi-sold',badgeCls:'fab-sold',label:'Sold'},'Removed':{icon:'🗑️',iconCls:'fi-removed',badgeCls:'fab-removed',label:'Removed'}};
 
-const ONLINE_THRESHOLD = 1200000; // 20 minutes - user is online if lastActive within this threshold
+const ONLINE_THRESHOLD = 1200000; // 20 minutes - user is online if lastActive 
 
-// Called whenever any data source updates — keeps Records and Top Contributors instant
+
 function reRenderAll(){
   renderUsers();
   renderRoleBreakdown();
@@ -2079,13 +2078,13 @@ onValue(ref(db,'users'),snap=>{
 onValue(ref(db,'crabs'),snap=>{
   const data=snap.val();
   window._allCrabs=data?Object.entries(data).map(([id,v])=>({id,...v})):[];
-  // Also maintain _crabs for compatibility with existing admin functions
+ 
   window._crabs = window._allCrabs;
   refreshOverview();renderActivityFeed();filterHistory();
   document.getElementById('lastUpdated').textContent=`Updated ${new Date().toLocaleTimeString()}`;
-  // Immediately update Records count and Top Contributors when crab data arrives
+  
   reRenderAll();
-  // Re-evaluate user online/offline status every minute based on local clock
+  
   if (!window._userStatusInterval) {
     window._userStatusInterval = setInterval(() => { if (typeof renderUsers === 'function') renderUsers(); }, 60000);
   }
@@ -2093,14 +2092,14 @@ onValue(ref(db,'crabs'),snap=>{
 onValue(ref(db,'deletedCrabs'),snap=>{
   const data=snap.val();
   window._deletedCrabs=data?Object.entries(data).map(([id,v])=>({id,...v})):[];
-  // Also maintain _deleted for compatibility with existing admin functions
+  
   window._deleted = window._deletedCrabs;
   refreshOverview();filterHistory();renderActivityFeed();
-  // Immediately update Records count and Top Contributors when archived data arrives
+
   reRenderAll();
 });
 
-// Same source as user.html History — tab badge = activityLog size (not archived count)
+
 onValue(ref(db,'activityLog'), snapshot => {
   const data = snapshot.val();
   window._allEvents = data
@@ -2126,11 +2125,11 @@ onValue(ref(db,'restoreHistory'),snap=>{
 });
 
 function refreshOverview(){
-  // Use same data sources as dashboard.html
+  
   const crabs   = window._allCrabs   || [];
   const deleted = window._deletedCrabs || [];
   
-  // Use same calculation logic as dashboard.html
+ 
   const healthy     = crabs.filter(c => (c.weeklyStatus||'').toLowerCase() === 'healthy').length;
   const readyToSell = crabs.filter(c => c.weeklyStatus === 'Ready to Sell').length;
   const dead        = deleted.filter(c => c.weeklyStatus === 'Dead').length;
@@ -2148,7 +2147,7 @@ function refreshOverview(){
   s('ovArchived',deleted.length);
   document.getElementById('ovArchivedSub').textContent=`${sold} sold · ${dead} dead`;
   document.getElementById('tbOverview').textContent=total;
-  // Use same age calculation logic as dashboard.html
+  
   const ageDays      = crabs.filter(c => ageBucket(computeAgeDays(c.dateIn)) === 'age-days').length;
   const ageWeek1     = crabs.filter(c => ageBucket(computeAgeDays(c.dateIn)) === 'age-week1').length;
   const ageWeek2     = crabs.filter(c => ageBucket(computeAgeDays(c.dateIn)) === 'age-week2').length;
@@ -2175,7 +2174,7 @@ function renderTypeBreakdown(C){
 }
 
 function renderActivityFeed(){
-  // Use same data sources as dashboard.html
+  
   const activeFeed=(window._allCrabs||[]).map(c=>({...c,_isDeleted:false}));
   const deletedFeed=(window._deletedCrabs||[]).map(c=>({...c,_isDeleted:true}));
   const all=[...activeFeed,...deletedFeed].sort((a,b)=>{
@@ -2201,7 +2200,7 @@ function renderActivityFeed(){
 }
 
 window.openStatModal=type=>{
-  // Use same data sources as dashboard.html
+ 
   const crabs   = window._allCrabs   || [];
   const deleted = window._deletedCrabs || [];
   let filtered,title;
@@ -2227,7 +2226,7 @@ window.openStatModal=type=>{
   openModal('statDetailModal');
 };
 
-// Populate month filter in stat detail modal
+// Populate month filter stat detail modal
 function populateStatDetailMonthFilter(crabs){
   try{
     const select = document.getElementById('statDetailMonthFilter');
@@ -2293,7 +2292,7 @@ window.filterStatDetail=()=>{
   const monthFilter=document.getElementById('statDetailMonthFilter')?.value||'';
   let f=(window._statCrabs||[]).filter(c=>{const a=ageLabel(computeAgeDays(c.dateIn));return(c.boxNo||c.id||'').toLowerCase().includes(q)||(c.crabType||'').toLowerCase().includes(q)||(c.location||'').toLowerCase().includes(q)||(c.gender||'').toLowerCase().includes(q)||(c.weeklyStatus||'').toLowerCase().includes(q)||a.text.toLowerCase().includes(q);});
   
-  // Apply month filter
+  // month filter
   if(monthFilter){
     const [year, month] = monthFilter.split('-').map(Number);
     const targetMonth = month - 1;
@@ -2312,7 +2311,7 @@ window.filterStatDetail=()=>{
     f = f.filter(c => isTargetMonth(c.createdAt || c.addedAt || c.timestamp || c.soldAt || c.diedAt || (c.dateIn ? new Date(c.dateIn + 'T00:00:00').getTime() : null)));
   }
   
-  // Update modal title with filtered count
+  // Update modal title
   const titleEl = document.getElementById('statModalTitle');
   const originalTitle = titleEl.textContent.split(' — ')[0];
   titleEl.textContent = `${originalTitle} — ${f.length} crabs`;
@@ -2320,7 +2319,7 @@ window.filterStatDetail=()=>{
   renderStatDetail(f,window._statType);
 };
 
-// Generate Inventory Summary
+// Inventory Summary
 window.generateInventorySummary = function(){
   try{
     const reportType = document.getElementById('invReportType')?.value || 'all';
@@ -2335,7 +2334,7 @@ window.generateInventorySummary = function(){
     const deleted = window._deletedCrabs || [];
     let allCrabs = [...crabs, ...deleted];
     
-    // Filter by report type
+    // Filter report type
     if(reportType !== 'all'){
       if(reportType === 'sold'){
         allCrabs = deleted.filter(c => c.weeklyStatus === 'Sold');
@@ -2348,7 +2347,7 @@ window.generateInventorySummary = function(){
       }
     }
     
-    // Filter by date range
+    // Filter date range
     if(fromDate || toDate){
       const fromTs = fromDate ? new Date(fromDate + 'T00:00:00').getTime() : 0;
       const toTs = toDate ? new Date(toDate + 'T23:59:59').getTime() : Infinity;
@@ -2357,36 +2356,34 @@ window.generateInventorySummary = function(){
         let dateVal;
         if(dateType === 'dateIn' && c.dateIn){
           dateVal = new Date(c.dateIn + 'T00:00:00').getTime();
-        } else if(dateType === 'createdAt' && c.createdAt){
-          dateVal = c.createdAt;
         } else if(dateType === 'soldAt' && c.soldAt){
           dateVal = c.soldAt;
         } else if(dateType === 'diedAt' && c.diedAt){
           dateVal = c.diedAt;
         } else {
-          // Fallback to timestamp or dateIn
+          // dateIn
           dateVal = c.timestamp || (c.dateIn ? new Date(c.dateIn + 'T00:00:00').getTime() : null);
         }
         return dateVal && dateVal >= fromTs && dateVal <= toTs;
       });
     }
     
-    // Filter by location
+    // location
     if(location){
       allCrabs = allCrabs.filter(c => (c.location||'').toLowerCase().includes(location));
     }
     
-    // Filter by crab type
+    // Filter crab type
     if(crabType){
       allCrabs = allCrabs.filter(c => c.crabType === crabType);
     }
 
-    // Filter by gender
+    // Filter gender
     if(invGender){
       allCrabs = allCrabs.filter(c => (c.gender||'').toLowerCase().trim() === invGender);
     }
     
-    // Generate results table
+    //results table
     const totalCount = allCrabs.length;
     
     if(totalCount === 0){
@@ -2471,9 +2468,7 @@ window.clearInventoryResults = function(){
   document.getElementById('inventoryResults').innerHTML = '';
 };
 
-/* ══════════════════════════════════════════════
-   HISTORY (sync with user.html activityLog)
-══════════════════════════════════════════════ */
+/* HISTORY with user.html*/
 const HIST_FIELD_LABELS = {
   dateIn:'Date In', crabOrigin:'Origin', gender:'Gender', crabType:'Type',
   crabClass:'Class', originWeight:'Orig.Wt', currentWeight:'Curr.Wt',
@@ -2497,7 +2492,7 @@ function histStatusStyle(weeklyStatus, action){
   else if(st==='readytosell'){bg='#fef3c7';color='#92400e';}
   return { label, bg, color };
 }
-/** user.html writeLog does not store crabId — log row id is not deletedCrabs key; resolve by box + time. */
+
 function archivedCrabKeyForEvent(e){
   const box=(e.boxNo||'').toUpperCase().trim();
   if(!box) return null;
@@ -2632,7 +2627,7 @@ window.updatePagination = (totalRecords) => {
     ? `Showing ${startIndex}-${endIndex} of ${totalRecords} events`
     : 'No events';
   
-  // Update page numbers
+  // page numbers
   const pageNumbers = document.getElementById('pageNumbers');
   let pages = [];
   for (let i = 1; i <= totalPages; i++) {
@@ -2650,7 +2645,7 @@ window.updatePagination = (totalRecords) => {
     return `<button class="pagination-number ${p === window._currentPage ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`;
   }).join('');
   
-  // Update Prev/Next buttons
+  // Prev/Next buttons
   document.getElementById('prevBtn').disabled = window._currentPage === 1;
   document.getElementById('nextBtn').disabled = window._currentPage === totalPages || totalPages === 0;
 };
@@ -2779,7 +2774,7 @@ function renderUsers(){
   const tbody=document.getElementById('usersTableBody');
   if(!users.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">👥</div>No users found</div></td></tr>`;return;}
   tbody.innerHTML=users.map((u,i)=>{
-    // Count ALL records (active + archived) attributed to this user
+    // Count all records (active + archived)
     const rc=allCrabs.filter(c=>(c.recordedBy||c.addedBy||'').trim()===u.username).length;
     const av=AV[i%AV.length],ini=(u.name||u.username||'U').slice(0,2).toUpperCase();
     // Online = isLoggedIn is true AND lastActive within 30 minutes
@@ -2789,7 +2784,7 @@ function renderUsers(){
     const roleDisplay=roleLabels[u.role]||cap(u.role||'monitor1');
     const lastSeenTxt=u.lastActive?relTime(u.lastActive):'Never';
     
-    // Check for profile picture
+    // profile picture
     const hasProfilePic = u.profilePictureUrl && u.profilePictureUrl.length > 0;
     const avatarStyle = hasProfilePic 
       ? `background:url(${u.profilePictureUrl}) center/cover no-repeat;`
@@ -2844,7 +2839,7 @@ window.saveNewUser=async()=>{
     if(snap.exists()){
       const ex=Object.values(snap.val());
       if(ex.find(u=>u.username===username)){showToast('Username already occupied','error');return;}
-      // Check if monitor role is already taken
+      //monitor role occupied
       if(role.startsWith('monitor') && ex.find(u=>u.role===role)){showToast(`Monitor role "${role}" is already occupied by another user`,'error');return;}
     }
     await push(ref(db,'users'),{name,username,password,role,createdAt:Date.now()});
@@ -2864,7 +2859,7 @@ window.openEditUser=(userId)=>{
   const ini=(u.name||u.username||'U').slice(0,2).toUpperCase();
   const isOnline = u.isLoggedIn === true && (u.lastActive && (Date.now() - u.lastActive) < ONLINE_THRESHOLD);
   
-  // Check for profile picture
+  // profile picture
   const hasProfilePic = u.profilePictureUrl && u.profilePictureUrl.length > 0;
   if(hasProfilePic){
     document.getElementById('euAvatar').style.background=`url(${u.profilePictureUrl}) center/cover no-repeat`;
@@ -2957,7 +2952,7 @@ window.saveProfile=async()=>{
     _applyAvatarToEl(document.getElementById('profileAvatar'), s);
     _applyAvatarToEl(document.getElementById('headerProfileAvatar'), s);
     
-    // Save to Firebase for persistence
+    // Save to Firebase
     try{
       const{db,ref,set}=window._fb;
       const username=s.username;
@@ -2995,7 +2990,7 @@ window.handleProfilePictureUpload=async(event)=>{
   const file=event.target.files[0];
   if(!file)return;
   
-  // Validate file size (max 2MB for base64)
+  // file size (max 2MB for base64)
   const maxSize=2*1024*1024;
   if(file.size>maxSize){
     showToast('File too large. Maximum size is 2MB.','error');
@@ -3030,7 +3025,7 @@ window.handleProfilePictureUpload=async(event)=>{
         progressDiv.style.display='none';
         showToast('✅ Image loaded! Saving to database...','info');
         
-        // Automatically save to Firebase for persistence
+       
         try{
           const s=JSON.parse(sessionStorage.getItem('crabMonitoringSession')||'{}');
           const{db,ref,get,set}=window._fb;
@@ -3047,7 +3042,7 @@ window.handleProfilePictureUpload=async(event)=>{
                   ...userSnap.val()[userKey],
                   profilePictureUrl:base64String
                 });
-                // Update session immediately
+            
                 s.profilePictureUrl=base64String;
                 sessionStorage.setItem('crabMonitoringSession',JSON.stringify(s));
                 _applyAvatarToEl(document.getElementById('profileAvatar'), s);
@@ -3086,7 +3081,7 @@ window.removeProfilePicture=async()=>{
   document.getElementById('currentPicturePreview').style.display='none';
   document.getElementById('profilePictureInput').value='';
   
-  // Automatically remove from Firebase for persistence
+
   try{
     const s=JSON.parse(sessionStorage.getItem('crabMonitoringSession')||'{}');
     const{db,ref,get,set}=window._fb;
@@ -3103,7 +3098,7 @@ window.removeProfilePicture=async()=>{
             ...userSnap.val()[userKey],
             profilePictureUrl:null
           });
-          // Update session immediately
+      
           s.profilePictureUrl=null;
           sessionStorage.setItem('crabMonitoringSession',JSON.stringify(s));
           _applyAvatarToEl(document.getElementById('profileAvatar'), s);
@@ -3123,12 +3118,12 @@ window.removeProfilePicture=async()=>{
 const _origOpenModal=window.openModal;
 window.openModal=(id)=>{
   if(id==='addUserModal'){
-    // Check which monitor roles are already occupied and disable them
+    // Check which monitor roles are already occupied
     const roleSelect=document.getElementById('newUserRole');
     if(roleSelect){
       const applyRoleRestrictions=async()=>{
         let users=window._users||[];
-        // If users not loaded yet, fetch from Firebase
+   
         if(users.length===0 && window._fb){
           try{
             const{db,ref,get}=window._fb;
@@ -3173,7 +3168,7 @@ window.openModal=(id)=>{
       document.getElementById('avatarPickerPanel').style.display='none';
       const msg=document.getElementById('profileMsg');if(msg)msg.style.display='none';
       
-      // Load profile picture preview if exists
+      // Load profile picture if exists
       const previewDiv=document.getElementById('currentPicturePreview');
       const previewImg=document.getElementById('profilePicturePreviewImg');
       if(s.profilePictureUrl){
@@ -3221,7 +3216,7 @@ function _applyAvatarToEl(el, s) {
     el.classList.remove('has-photo');
   }
   
-  // Also update drawer avatar if updating header avatar
+  // header avatar
   if (el.id === 'headerProfileAvatar') {
     const drawerAvatar = document.getElementById('drawerAvatar');
     if (drawerAvatar) {
@@ -3352,7 +3347,7 @@ function switchTab(tabId,btn){
 window.switchTab=switchTab;
 window.switchTabByName=name=>{const names=['overview','history','users'];const idx=names.indexOf(name);const btns=document.querySelectorAll('.nav-tab');if(idx>=0&&btns[idx])switchTab(name,btns[idx]);};
 
-// Mobile Drawer Functions
+// Mobile Functions
 const hamburgerBtn = document.getElementById('hamburgerBtn');
 const mobileDrawer = document.getElementById('mobileDrawer');
 const drawerOverlay = document.getElementById('drawerOverlay');
@@ -3377,7 +3372,7 @@ if (hamburgerBtn) {
   });
 }
 
-// Update drawer avatar with user initials or photo
+//drawer avatar with user initials or photo
 function updateDrawerAvatar() {
   const userName = document.getElementById('userName')?.textContent || 'Admin';
   const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -3394,7 +3389,7 @@ function updateDrawerAvatar() {
     } catch (e) {}
   }
   
-  // Update drawer avatar
+  //drawer avatar
   if (drawerAvatar) {
     if (profilePictureUrl) {
       drawerAvatar.textContent = '';
@@ -3407,7 +3402,7 @@ function updateDrawerAvatar() {
     }
   }
   
-  // Update header profile avatar (works as hamburger on mobile)
+  // works as hamburger on mobile
   if (headerProfileAvatar) {
     headerProfileAvatar.classList.add('profile-avatar');
     if (profilePictureUrl) {
@@ -3439,10 +3434,10 @@ window.showConfirm=showConfirm;
 function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className=`toast ${type} show`;setTimeout(()=>{t.className='toast';},3500);}
 window.showToast=showToast;
 
-// ══ HEARTBEAT SYSTEM ══
+// ══ HEARTBEAT ══
 let _heartbeatInterval = null;
 const HEARTBEAT_INTERVAL = 30000;
-// ONLINE_THRESHOLD is defined above (20 minutes)
+// (20 minutes)
 
 function startHeartbeat() {
   if (_heartbeatInterval) clearInterval(_heartbeatInterval);
@@ -3482,7 +3477,7 @@ function updateLastActive() {
           ...matched, isLoggedIn: true, lastActive: now
         }).catch(() => {});
       } else {
-        // User not found in window._users yet, try to fetch from Firebase directly
+      
         window._fb.get(window._fb.ref(window._fb.db, 'users')).then(snap => {
           if (snap.exists()) {
             const userData = snap.val();
@@ -3509,10 +3504,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const s = JSON.parse(session);
         if (s.username) {
           startHeartbeat();
-          // Re-assert isLoggedIn=true on page refresh (session still valid)
+         
           _setLoginFlag(s.username, true);
           
-          // Load user data from Firebase to get latest profile picture
+        
           const loadProfilePicture = () => {
             console.log('Loading profile picture for user:', s.username);
             console.log('Current session profilePictureUrl:', s.profilePictureUrl);
@@ -3547,12 +3542,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           };
           
-          // Try to load immediately, then retry if Firebase isn't ready
+        
           loadProfilePicture();
           setTimeout(loadProfilePicture, 2000);
           setTimeout(loadProfilePicture, 4000);
-          
-          // Update avatars with profile photo
+ 
           if (window._applyAvatarToEl) {
             _applyAvatarToEl(document.getElementById('headerProfileAvatar'), s);
             _applyAvatarToEl(document.getElementById('profileAvatar'), s);
@@ -3590,21 +3584,21 @@ async function writeActivityLog(action, boxNo, snapshot, changes, eventBy, event
   } catch(err) { console.warn('activityLog write failed:', err); }
 }
 
-// Initialize bubble animations for login modal
+// bubble animations for login modal
 function initAuthBubbles() {
   const particlesContainer = document.getElementById('authParticles');
   if (!particlesContainer) return;
   
-  // Clear existing particles
+
   particlesContainer.innerHTML = '';
   
-  // Create main bubbles
+  
   const bubbleCount = 20;
   for (let i = 0; i < bubbleCount; i++) {
     const bubble = document.createElement('div');
     bubble.className = 'auth-particle';
     
-    // Random properties for each bubble
+  
     const size = Math.random() * 80 + 30;
     const left = Math.random() * 100;
     const delay = Math.random() * 25;
@@ -3619,7 +3613,7 @@ function initAuthBubbles() {
     particlesContainer.appendChild(bubble);
   }
   
-  // Create small floating particles
+
   const smallParticleCount = 30;
   for (let i = 0; i < smallParticleCount; i++) {
     const smallParticle = document.createElement('div');
@@ -3636,7 +3630,7 @@ function initAuthBubbles() {
     particlesContainer.appendChild(smallParticle);
   }
   
-  // Create glowing orbs
+
   const orbCount = 3;
   for (let i = 0; i < orbCount; i++) {
     const orb = document.createElement('div');
@@ -3659,10 +3653,10 @@ function initAuthBubbles() {
   }
 }
 
-// Initialize bubbles when DOM is ready and when auth modal is shown
+
 document.addEventListener('DOMContentLoaded', initAuthBubbles);
 
-// Also reinitialize bubbles when auth modal becomes visible
+
 const observer = new MutationObserver((mutations) => {
   mutations.forEach((mutation) => {
     if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
@@ -3674,13 +3668,13 @@ const observer = new MutationObserver((mutations) => {
   });
 });
 
-// Start observing the auth overlay
+
 const authOverlay = document.getElementById('authOverlay');
 if (authOverlay) {
   observer.observe(authOverlay, { attributes: true });
 }
 
-// Restore crab — archived sold / dead / removed back to active healthy
+// Restore crab 
 window.restoreCrab = async (crabId, boxNo) => {
   const { db, ref, set, get } = window._fb;
   try {
@@ -3742,7 +3736,7 @@ window.restoreCrab = async (crabId, boxNo) => {
         });
         await set(ref(db, `deletedCrabs/${crabId}`), null);
         
-        // Also write to user.html activityLog for synchronization
+        
         await writeActivityLog('restored', boxNo, restoredCrab, {}, adminUser, now);
         
         if (typeof filterHistory === 'function') filterHistory();

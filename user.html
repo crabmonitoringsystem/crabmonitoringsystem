@@ -1017,9 +1017,7 @@ function resetSigninBtn(){ const b=document.getElementById('signinBtn'); b.disab
 </script>
 
 <script>
-/* ══════════════════════════════════════════════
-   ROUTING & BOOTSTRAP
-══════════════════════════════════════════════ */
+/* ROUTING & BOOTSTRAP*/
 window._allCrabs   = [];
 window._deletedCrabs = [];
 window._allEvents  = [];
@@ -1149,9 +1147,7 @@ window.toggleEye=()=>{
     btn.setAttribute('title',isShowing?'Show password':'Hide password');
 };
 
-/* ══════════════════════════════════════════════
-   ACTIVITY LOG HELPERS
-══════════════════════════════════════════════ */
+/*ACTIVITY LOG HELPERS*/
 const TRACKED_FIELDS = ['dateIn','crabOrigin','gender','crabType','crabClass',
                          'originWeight','currentWeight','weeklyStatus','location','notes'];
 
@@ -1191,9 +1187,7 @@ async function writeLog(action, boxNo, snapshot, changes, eventBy, eventTs) {
 }
 window.writeLog = writeLog;
 
-/* ══════════════════════════════════════════════
-   DASHBOARD LOGIC
-══════════════════════════════════════════════ */
+/ DASHBOARD LOGIC*/
 const ORIGIN_COLORS=['linear-gradient(135deg,#667eea,#764ba2)','linear-gradient(135deg,#4facfe,#00f2fe)','linear-gradient(135deg,#43e97b,#38f9d7)','linear-gradient(135deg,#fa709a,#fee140)','linear-gradient(135deg,#f093fb,#f5576c)','linear-gradient(135deg,#a78bfa,#7c3aed)','linear-gradient(135deg,#e67e22,#f39c12)'];
 
 function renderTopOrigins(crabs, deletedCrabs=[]){
@@ -1384,9 +1378,7 @@ function hasBoxDateConflict(boxNoVal,dateInVal,excludeKey){
     );
 }
 
-/* ══════════════════════════════════════════════
-   FORM SUBMIT — ADD & EDIT (with activityLog)
-══════════════════════════════════════════════ */
+/* FORM SUBMIT — ADD & EDIT (with activityLog) */
 document.getElementById('crabDataForm').addEventListener('submit', async e=>{
     e.preventDefault();
     const btn=document.getElementById('saveBtn'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Saving...';
@@ -1876,9 +1868,7 @@ window.downloadReportPDF = async () => {
     showToast(`✅ PDF downloaded: ${data.length} records`, 'success');
 };
 
-/* ══════════════════════════════════════════════
-   HISTORY LOGIC
-══════════════════════════════════════════════ */
+/* HISTORY LOGIC */
 let _currentPage=1, _filteredData=[], _perPage=15;
 
 function capH(s){ return s?s.charAt(0).toUpperCase()+s.slice(1):''; }
