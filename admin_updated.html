@@ -1430,7 +1430,8 @@ body.authenticated .header { display:block !important; }
         <select id="histAction" onchange="filterHistory()"><option value="">All Actions</option><option value="added">➕ Added</option><option value="updated">✏️ Updated</option><option value="restored">↩️ Restored</option><option value="sold">🏷️ Sold</option><option value="dead">💀 Dead</option><option value="removed">🗑️ Removed</option></select>
         <select id="histType" onchange="filterHistory()"><option value="">All Types</option><option value="SS">SS – King Crab</option><option value="SO">SO – Orange/Red</option><option value="ST">ST – Purple</option></select>
         <select id="histSort" onchange="filterHistory()"><option value="newest">Newest First</option><option value="oldest">Oldest First</option><option value="box">Box No.</option></select>
-        <button class="btn btn-primary btn-export-small" onclick="exportCSV()">⬇️ Export</button>
+        <button class="btn btn-primary btn-export-small" onclick="exportPDF()">📋 PDF</button>
+        <button class="btn btn-secondary btn-export-small" onclick="exportWord()">📄 Word</button>
       </div>
     </div>
     <div class="card" style="box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
@@ -2278,12 +2279,16 @@ function populateStatDetailMonthFilter(crabs){
 function renderStatDetail(crabs,type){
   const body=document.getElementById('statDetailBody');
   if(!crabs.length){body.innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div>No records found</div>`;return;}
+  const fmt=function(ts){if(!ts)return'—';var d=new Date(ts);return d.toLocaleDateString();};
   body.innerHTML=crabs.sort((a,b)=>(a.boxNo||a.id).localeCompare(b.boxNo||b.id)).map(c=>{
     const days=computeAgeDays(c.dateIn),age=ageLabel(days);
     const st=(c.weeklyStatus||'').toLowerCase().replace(/\s+/g,'');
     const cls=st==='healthy'?'healthy':st==='dead'?'dead':st==='readytosell'?'sell':st==='sold'?'sold':'';
     const wDiff=(c.currentWeight!=null&&c.originWeight!=null)?(parseFloat(c.currentWeight)-parseFloat(c.originWeight)).toFixed(2):null;
-    return`<div class="detail-item ${cls}"><div class="di-top"><div><div class="di-id">${c.boxNo||c.id}</div><div class="di-type">${c.crabType||'Unknown'}</div></div><span class="crab-status status-${st}">${cap(c.weeklyStatus)}</span></div><div class="di-grid"><div class="di-field hl"><div class="di-label">⏱ Age</div><div class="di-value">${age.text} (${days}d)</div></div><div class="di-field"><div class="di-label">📅 Date In</div><div class="di-value">${c.dateIn||'—'}</div></div><div class="di-field"><div class="di-label">📍 Location</div><div class="di-value">${c.location||'—'}</div></div><div class="di-field"><div class="di-label">⚖️ Curr. Wt.</div><div class="di-value">${c.currentWeight!=null?c.currentWeight+'g':'—'}${wDiff!==null?` <span class="wdiff ${parseFloat(wDiff)>=0?'pos':'neg'}">(${parseFloat(wDiff)>=0?'+':''}${wDiff}g)</span>`:''}</div></div><div class="di-field"><div class="di-label">⚖️ Orig. Wt.</div><div class="di-value">${c.originWeight!=null?c.originWeight+'g':'—'}</div></div><div class="di-field"><div class="di-label">🚻 Gender</div><div class="di-value">${cap(c.gender||'—')}</div></div><div class="di-field"><div class="di-label">🏷️ Class</div><div class="di-value">${c.crabClass?'Class '+c.crabClass:'—'}</div></div><div class="di-field"><div class="di-label">🌊 Origin</div><div class="di-value">${c.crabOrigin||'—'}</div></div><div class="di-field"><div class="di-label">👤 Recorded By</div><div class="di-value">${c.recordedBy||c.addedBy||'—'}</div></div></div>${c.notes?`<div style="margin-top:0.65rem;padding:0.5rem 0.75rem;background:#fffbf0;border-radius:7px;border-left:3px solid #ffc107;font-size:0.78rem;color:#666;">📝 ${c.notes}</div>`:''}</div>`;
+    var extraFields='';
+    if(st==='sold') extraFields+=`<div class="di-field"><div class="di-label">🏷️ Sold Date</div><div class="di-value">${fmt(c.soldAt)}</div></div>`;
+    if(st==='dead') extraFields+=`<div class="di-field"><div class="di-label">💀 Mortality Date</div><div class="di-value">${fmt(c.diedAt)}</div></div>`;
+    return`<div class="detail-item ${cls}"><div class="di-top"><div><div class="di-id">${c.boxNo||c.id}</div><div class="di-type">${c.crabType||'Unknown'}</div></div><span class="crab-status status-${st}">${cap(c.weeklyStatus)}</span></div><div class="di-grid"><div class="di-field hl"><div class="di-label">⏱ Age</div><div class="di-value">${age.text} (${days}d)</div></div><div class="di-field"><div class="di-label">📅 Date In</div><div class="di-value">${c.dateIn||'—'}</div></div><div class="di-field"><div class="di-label">📍 Location</div><div class="di-value">${c.location||'—'}</div></div><div class="di-field"><div class="di-label">⚖️ Curr. Wt.</div><div class="di-value">${c.currentWeight!=null?c.currentWeight+'g':'—'}${wDiff!==null?` <span class="wdiff ${parseFloat(wDiff)>=0?'pos':'neg'}">(${parseFloat(wDiff)>=0?'+':''}${wDiff}g)</span>`:''}</div></div><div class="di-field"><div class="di-label">⚖️ Orig. Wt.</div><div class="di-value">${c.originWeight!=null?c.originWeight+'g':'—'}</div></div><div class="di-field"><div class="di-label">🚻 Gender</div><div class="di-value">${cap(c.gender||'—')}</div></div><div class="di-field"><div class="di-label">🏷️ Class</div><div class="di-value">${c.crabClass?'Class '+c.crabClass:'—'}</div></div><div class="di-field"><div class="di-label">🌊 Origin</div><div class="di-value">${c.crabOrigin||'—'}</div></div><div class="di-field"><div class="di-label">👤 Recorded By</div><div class="di-value">${c.recordedBy||c.addedBy||'—'}</div></div>${extraFields}</div>${c.notes?`<div style="margin-top:0.65rem;padding:0.5rem 0.75rem;background:#fffbf0;border-radius:7px;border-left:3px solid #ffc107;font-size:0.78rem;color:#666;">📝 ${c.notes}</div>`:''}</div>`;
   }).join('');
 }
 
@@ -2430,6 +2435,8 @@ window.generateInventorySummary = function(){
           <span class="inventory-results-title">Report Results</span>
           <div class="inventory-results-actions">
             <span class="inventory-results-count">${totalCount} record${totalCount!==1?'s':''} found</span>
+            <button class="btn btn-primary btn-export-small" onclick="exportReportPDF()">📋 PDF</button>
+            <button class="btn btn-secondary btn-export-small" onclick="exportReportWord()">📄 Word</button>
             <button class="btn btn-secondary" onclick="clearInventoryResults()" style="padding:0.5rem 1rem;font-size:0.8rem;">Close</button>
           </div>
         </div>
@@ -2456,6 +2463,9 @@ window.generateInventorySummary = function(){
       </div>
     `;
     
+    // Store data for export functions
+    window._inventoryReportData = allCrabs;
+    
     document.getElementById('inventoryResults').innerHTML = resultsHtml;
     
   }catch(e){
@@ -2466,6 +2476,7 @@ window.generateInventorySummary = function(){
 
 window.clearInventoryResults = function(){
   document.getElementById('inventoryResults').innerHTML = '';
+  window._inventoryReportData = null;
 };
 
 /* HISTORY with user.html*/
@@ -2727,7 +2738,7 @@ window.exportCSV=()=>{
   const changesToStr = (ch)=>{
     if(!ch || !Object.keys(ch).length) return '';
     return Object.entries(ch).map(([f,{from,to}])=>{
-      const label = HIST_FIELD_LABELS[f] || f;
+      const label = HIST_FIELD_LABELS[f]||f;
       return `${label}: ${from??''}→${to??''}`;
     }).join('; ');
   };
@@ -2762,6 +2773,215 @@ window.exportCSV=()=>{
   a.download=`crab-activity-log-${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   showToast('📥 CSV exported!','success');
+};
+
+window.exportPDF=function(){
+  const data = window._filteredHistoryData || window._allEvents || [];
+  if(!data.length){ showToast('No data to export','error'); return; }
+
+  const actionMap={added:'Added',updated:'Updated',restored:'Restored',sold:'Sold',dead:'Dead',removed:'Removed'};
+  const statusMap={healthy:'Healthy',alive:'Alive',sold:'Sold',dead:'Dead',removed:'Removed',mortality:'Dead',sick:'Sick'};
+  const fmt=function(ts){ if(!ts)return'—'; var d=new Date(ts); return d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); };
+
+  const headers=['#','Box No.','Action','Type','Class','Gender','Location','Status','Date In','Age','Orig. Wt.','Curr. Wt.','Changes','Added By','Action By','Action At'];
+  const rows=data.map(function(e,i){
+    var days=window.ageDays?window.ageDays(e.dateIn):null;
+    var ageTxt='';
+    if(days!==null && window.ageLabel){ var al=window.ageLabel(days); ageTxt=al.text+' ('+days+'d)'; }
+    var actionName=actionMap[e.action]||e.action||'—';
+    var st=(e.weeklyStatus||'').toLowerCase().replace(/\s+/g,'');
+    var statusName=statusMap[st]||e.weeklyStatus||'Unknown';
+    var changes='';
+    var ch=e.changes||{};
+    for(var f in ch){ changes+=(changes?', ':'')+(window.HIST_FIELD_LABELS&&window.HIST_FIELD_LABELS[f]||f); }
+    return [
+      i+1, e.boxNo||'—', actionName, e.crabType||'—',
+      e.crabClass?'Class '+e.crabClass:'—', e.gender?e.gender[0].toUpperCase()+e.gender.slice(1):'—',
+      e.location||'—', statusName,
+      e.dateIn||'—', ageTxt,
+      e.originWeight!=null?e.originWeight+'g':'—',
+      e.currentWeight!=null?e.currentWeight+'g':'—',
+      changes||'—',
+      e.addedBy||'—', e.eventBy||'—', fmt(e.eventTs)
+    ];
+  });
+
+  var tableRows='',headCells='';
+  for(var i=0;i<rows.length;i++){
+    var cells='';
+    for(var j=0;j<rows[i].length;j++){
+      cells+='<td style="padding:6px;border:1px solid #ddd;font-size:11px;">'+String(rows[i][j]).replace(/</g,'&lt;')+'</td>';
+    }
+    tableRows+='<tr>'+cells+'</tr>';
+  }
+  for(var i=0;i<headers.length;i++){
+    headCells+='<th style="padding:6px;border:1px solid #ddd;background:#f0f0f0;font-size:11px;font-weight:bold;">'+headers[i]+'</th>';
+  }
+
+  var win=window.open('','_blank');
+  if(!win){ showToast('Popup blocked! Please allow popups for this site.','error'); return; }
+  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Crab Records Archive</title>');
+  win.document.write('<style>body{font-family:Arial,sans-serif;margin:20px}h1{color:#667eea;font-size:18px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd}</style>');
+  win.document.write('</head><body><h1>Crab Records Archive</h1>');
+  win.document.write('<p>Generated on '+new Date().toLocaleString()+'</p>');
+  win.document.write('<table><thead><tr>'+headCells+'</tr></thead><tbody>'+tableRows+'</tbody></table><br>');
+  win.document.write('<button onclick="window.print()" style="padding:10px 20px;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;font-size:14px;">Print / Save as PDF</button>');
+  win.document.write('</body></html>');
+  win.document.close();
+  showToast('PDF window opened. Press Ctrl+P to save as PDF','success');
+};
+
+window.exportWord=function(){
+  const data = window._filteredHistoryData || window._allEvents || [];
+  if(!data.length){ showToast('No data to export','error'); return; }
+
+  const actionMap={added:'Added',updated:'Updated',restored:'Restored',sold:'Sold',dead:'Dead',removed:'Removed'};
+  const statusMap={healthy:'Healthy',alive:'Alive',sold:'Sold',dead:'Dead',removed:'Removed',mortality:'Dead',sick:'Sick'};
+  const fmt=function(ts){ if(!ts)return'—'; var d=new Date(ts); return d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); };
+
+  const headers=['#','Box No.','Action','Type','Class','Gender','Location','Status','Date In','Age','Orig. Wt.','Curr. Wt.','Changes','Added By','Action By','Action At'];
+  const rows=data.map(function(e,i){
+    var days=window.ageDays?window.ageDays(e.dateIn):null;
+    var ageTxt='';
+    if(days!==null && window.ageLabel){ var al=window.ageLabel(days); ageTxt=al.text+' ('+days+'d)'; }
+    var actionName=actionMap[e.action]||e.action||'—';
+    var st=(e.weeklyStatus||'').toLowerCase().replace(/\s+/g,'');
+    var statusName=statusMap[st]||e.weeklyStatus||'Unknown';
+    var changes='';
+    var ch=e.changes||{};
+    for(var f in ch){ changes+=(changes?', ':'')+(window.HIST_FIELD_LABELS&&window.HIST_FIELD_LABELS[f]||f); }
+    return [
+      i+1, e.boxNo||'—', actionName, e.crabType||'—',
+      e.crabClass?'Class '+e.crabClass:'—', e.gender?e.gender[0].toUpperCase()+e.gender.slice(1):'—',
+      e.location||'—', statusName,
+      e.dateIn||'—', ageTxt,
+      e.originWeight!=null?e.originWeight+'g':'—',
+      e.currentWeight!=null?e.currentWeight+'g':'—',
+      changes||'—',
+      e.addedBy||'—', e.eventBy||'—', fmt(e.eventTs)
+    ];
+  });
+
+  var tableRows='',headCells='';
+  for(var i=0;i<rows.length;i++){
+    var cells='';
+    for(var j=0;j<rows[i].length;j++){
+      cells+='<td>'+String(rows[i][j]).replace(/</g,'&lt;')+'</td>';
+    }
+    tableRows+='<tr>'+cells+'</tr>';
+  }
+  for(var i=0;i<headers.length;i++){
+    headCells+='<th>'+headers[i]+'</th>';
+  }
+
+  const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><title>Crab Records Archive</title><style>body{font-family:Arial,sans-serif;margin:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:6px;font-size:11px}</style></head><body><h1 style="color:#667eea;font-size:18px;">Crab Records Archive</h1><p>Generated on '+new Date().toLocaleString()+'</p><table><thead><tr>'+headCells+'</tr></thead><tbody>'+tableRows+'</tbody></table></body></html>';
+
+  const blob=new Blob(['\ufeff', html], {type:'application/msword'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='crab-history-'+new Date().toISOString().slice(0,10)+'.doc';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+  showToast('Word document downloaded!','success');
+};
+
+window.exportReportPDF=function(){
+  const allCrabs = window._inventoryReportData || [];
+  if(!allCrabs.length){ showToast('No data to export','error'); return; }
+
+  const statusMap={healthy:'Healthy',alive:'Alive',sold:'Sold',dead:'Dead',removed:'Removed',mortality:'Dead',sick:'Sick'};
+  const fmt=function(ts){ if(!ts)return'—'; var d=new Date(ts); return d.toLocaleDateString(); };
+
+  const headers=['Box No.','Type','Status','Location','Date In','Mortality Date','Sold Date','Origin Wt.','Current Wt.','Gender','Class'];
+  const rows=allCrabs.map(function(c,i){
+    var st=(c.weeklyStatus||'').toLowerCase().replace(/\s+/g,'');
+    var statusName=statusMap[st]||c.weeklyStatus||'Unknown';
+    return [
+      c.boxNo||c.id||'—', c.crabType||'—', statusName,
+      c.location||'—', c.dateIn||'—',
+      c.diedAt?fmt(c.diedAt):'—',
+      c.soldAt?fmt(c.soldAt):'—',
+      c.originWeight!=null?c.originWeight+'g':'—',
+      c.currentWeight!=null?c.currentWeight+'g':'—',
+      c.gender?c.gender[0].toUpperCase()+c.gender.slice(1):'—',
+      c.crabClass?'Class '+c.crabClass:'—'
+    ];
+  });
+
+  var tableRows='',headCells='';
+  for(var i=0;i<rows.length;i++){
+    var cells='';
+    for(var j=0;j<rows[i].length;j++){
+      cells+='<td style="padding:6px;border:1px solid #ddd;font-size:11px;">'+String(rows[i][j]).replace(/</g,'&lt;')+'</td>';
+    }
+    tableRows+='<tr>'+cells+'</tr>';
+  }
+  for(var i=0;i<headers.length;i++){
+    headCells+='<th style="padding:6px;border:1px solid #ddd;background:#f0f0f0;font-size:11px;font-weight:bold;">'+headers[i]+'</th>';
+  }
+
+  var win=window.open('','_blank');
+  if(!win){ showToast('Popup blocked! Please allow popups for this site.','error'); return; }
+  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Inventory Report</title>');
+  win.document.write('<style>body{font-family:Arial,sans-serif;margin:20px}h1{color:#667eea;font-size:18px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd}</style>');
+  win.document.write('</head><body><h1>Inventory Report</h1>');
+  win.document.write('<p>Generated on '+new Date().toLocaleString()+'</p>');
+  win.document.write('<p>Total records: '+allCrabs.length+'</p>');
+  win.document.write('<table><thead><tr>'+headCells+'</tr></thead><tbody>'+tableRows+'</tbody></table><br>');
+  win.document.write('<button onclick="window.print()" style="padding:10px 20px;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;font-size:14px;">Print / Save as PDF</button>');
+  win.document.write('</body></html>');
+  win.document.close();
+  showToast('PDF window opened. Press Ctrl+P to save as PDF','success');
+};
+
+window.exportReportWord=function(){
+  const allCrabs = window._inventoryReportData || [];
+  if(!allCrabs.length){ showToast('No data to export','error'); return; }
+
+  const statusMap={healthy:'Healthy',alive:'Alive',sold:'Sold',dead:'Dead',removed:'Removed',mortality:'Dead',sick:'Sick'};
+  const fmt=function(ts){ if(!ts)return'—'; var d=new Date(ts); return d.toLocaleDateString(); };
+
+  const headers=['Box No.','Type','Status','Location','Date In','Mortality Date','Sold Date','Origin Wt.','Current Wt.','Gender','Class'];
+  const rows=allCrabs.map(function(c,i){
+    var st=(c.weeklyStatus||'').toLowerCase().replace(/\s+/g,'');
+    var statusName=statusMap[st]||c.weeklyStatus||'Unknown';
+    return [
+      c.boxNo||c.id||'—', c.crabType||'—', statusName,
+      c.location||'—', c.dateIn||'—',
+      c.diedAt?fmt(c.diedAt):'—',
+      c.soldAt?fmt(c.soldAt):'—',
+      c.originWeight!=null?c.originWeight+'g':'—',
+      c.currentWeight!=null?c.currentWeight+'g':'—',
+      c.gender?c.gender[0].toUpperCase()+c.gender.slice(1):'—',
+      c.crabClass?'Class '+c.crabClass:'—'
+    ];
+  });
+
+  var tableRows='',headCells='';
+  for(var i=0;i<rows.length;i++){
+    var cells='';
+    for(var j=0;j<rows[i].length;j++){
+      cells+='<td>'+String(rows[i][j]).replace(/</g,'&lt;')+'</td>';
+    }
+    tableRows+='<tr>'+cells+'</tr>';
+  }
+  for(var i=0;i<headers.length;i++){
+    headCells+='<th>'+headers[i]+'</th>';
+  }
+
+  const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><title>Inventory Report</title><style>body{font-family:Arial,sans-serif;margin:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:6px;font-size:11px}</style></head><body><h1 style="color:#667eea;font-size:18px;">Inventory Report</h1><p>Generated on '+new Date().toLocaleString()+'</p><p>Total records: '+allCrabs.length+'</p><table><thead><tr>'+headCells+'</tr></thead><tbody>'+tableRows+'</tbody></table></body></html>';
+
+  const blob=new Blob(['\ufeff', html], {type:'application/msword'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='inventory-report-'+new Date().toISOString().slice(0,10)+'.doc';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+  showToast('Word document downloaded!','success');
 };
 
 window.confirmClear=()=>showConfirm('Clear all archived records older than 30 days? Cannot be undone.',()=>showToast('Coming soon','info'));
@@ -2833,12 +3053,17 @@ window.saveNewUser=async()=>{
   const role=document.getElementById('newUserRole').value;
   if(!name||!username||!password){showToast('All fields required','error');return;}
   if(!window._fb){showToast('Firebase not ready. Please try again.','error');return;}
+  // Password validation: 6-8 alphanumeric characters
+  if(password.length < 6 || password.length > 8 || !/^[a-zA-Z0-9]+$/.test(password)){
+    showToast('Password must be 6-8 alphanumeric characters','error');return;
+  }
   const{db,ref,push,get}=window._fb;
   try{
     const snap=await get(ref(db,'users'));
     if(snap.exists()){
       const ex=Object.values(snap.val());
       if(ex.find(u=>u.username===username)){showToast('Username already occupied','error');return;}
+      if(ex.find(u=>u.name===name)){showToast('Fullname already exists','error');return;}
       //monitor role occupied
       if(role.startsWith('monitor') && ex.find(u=>u.role===role)){showToast(`Monitor role "${role}" is already occupied by another user`,'error');return;}
     }
