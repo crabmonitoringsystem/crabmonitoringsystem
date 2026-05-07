@@ -1723,8 +1723,12 @@ window.downloadReportPDF = async () => {
     const headers = ['Box No.', 'Type', 'Status', 'Crab Origin', 'Date In', 'Date Sold', 'Mortality Date', 'Orig.Wt.', 'Curr.Wt.', 'Gender', 'Class'];
     const colFracs = [0.09, 0.065, 0.09, 0.195, 0.085, 0.085, 0.09, 0.075, 0.075, 0.075, 0.075];
     const colWidths = colFracs.map(f => f * tableW);
-    const rowH = 5.2;
-    const headerYBoost = 6;
+    const cellPadX = 0.45;
+    const cellPadY = 0.35;
+    const headerFontSize = 6.5;
+    const bodyFontMax = 6;
+    const bodyFontMin = 4.5;
+    const maxLinesPerCell = 4;
     const maxY = pageH - margin;
 
     function colX(i){
@@ -1733,21 +1737,70 @@ window.downloadReportPDF = async () => {
         return x;
     }
 
-    function truncateForCol(text, colIndex){
-        const w = colWidths[colIndex];
-        const maxChars = Math.max(4, Math.floor(w / 1.8));
-        const s = String(text);
-        return s.length > maxChars ? s.slice(0, maxChars - 2) + '…' : s;
+    /** pt → approximate mm between baselines for table rows */
+    function lineGapPt(fs){
+        return fs * 0.41;
+    }
+    function firstBaselineFromTopPt(fs){
+        return fs * 0.34;
+    }
+
+    function splitCell(text, colIndex, fontSize){
+        doc.setFontSize(fontSize);
+        const maxW = Math.max(2, colWidths[colIndex] - 2 * cellPadX);
+        return doc.splitTextToSize(String(text), maxW);
+    }
+
+    function rowBodyLayout(rowData){
+        let fs = bodyFontMax;
+        for (; fs >= bodyFontMin; fs -= 0.5){
+            const layouts = rowData.map((cell, i) => splitCell(cell, i, fs));
+            const maxLn = Math.max(...layouts.map(l => l.length));
+            if (maxLn <= maxLinesPerCell) return { fs, layouts };
+        }
+        const layouts = rowData.map((cell, i) => splitCell(cell, i, bodyFontMin));
+        return { fs: bodyFontMin, layouts };
+    }
+
+    function rowHeightForLayouts(layouts, fs){
+        const maxLn = Math.max(...layouts.map(l => l.length), 1);
+        return maxLn * lineGapPt(fs) + 2 * cellPadY;
     }
 
     function drawHeaderRow(y){
-        doc.setFontSize(8);
+        doc.setDrawColor(90);
+        doc.setLineWidth(0.12);
         doc.setFont('helvetica', 'bold');
-        headers.forEach((h, i) => {
-            doc.text(truncateForCol(h, i), colX(i) + 0.5, y);
-        });
+        doc.setFontSize(headerFontSize);
+        const headerLayouts = headers.map((h, i) => splitCell(h, i, headerFontSize));
+        const headerH = rowHeightForLayouts(headerLayouts, headerFontSize);
+        for (let i = 0; i < headers.length; i++){
+            doc.rect(colX(i), y, colWidths[i], headerH, 'S');
+            let by = y + cellPadY + firstBaselineFromTopPt(headerFontSize);
+            headerLayouts[i].forEach(line => {
+                doc.text(line, colX(i) + cellPadX, by);
+                by += lineGapPt(headerFontSize);
+            });
+        }
         doc.setFont('helvetica', 'normal');
-        return y + headerYBoost;
+        return y + headerH;
+    }
+
+    function drawBodyRowAt(y, rowData, fs, layouts){
+        const rowH = rowHeightForLayouts(layouts, fs);
+        doc.setDrawColor(120);
+        doc.setLineWidth(0.1);
+        doc.setFontSize(fs);
+        doc.setFont('helvetica', 'normal');
+        for (let i = 0; i < rowData.length; i++){
+            doc.rect(colX(i), y, colWidths[i], rowH, 'S');
+            let by = y + cellPadY + firstBaselineFromTopPt(fs);
+            layouts[i].forEach(line => {
+                doc.text(line, colX(i) + cellPadX, by);
+                by += lineGapPt(fs);
+            });
+        }
+        return rowH;
     }
 
     let yPos = margin + 6;
@@ -1786,16 +1839,8 @@ window.downloadReportPDF = async () => {
 
     yPos += 3;
     yPos = drawHeaderRow(yPos);
-    doc.setFontSize(7.5);
 
     data.forEach(crab => {
-        if (yPos + rowH > maxY) {
-            doc.addPage();
-            yPos = margin + 4;
-            yPos = drawHeaderRow(yPos);
-            doc.setFontSize(7.5);
-        }
-
         const dateSold = crab.soldAt ? new Date(crab.soldAt).toLocaleDateString() : '—';
         const dateIn = crab.dateIn ? new Date(crab.dateIn).toLocaleDateString() : '—';
         const mortalityDate = reportMortalityDisplay(crab);
@@ -1814,10 +1859,15 @@ window.downloadReportPDF = async () => {
             crab.crabClass ? 'Class ' + crab.crabClass : '—'
         ];
 
-        rowData.forEach((cell, cellIndex) => {
-            doc.text(truncateForCol(cell, cellIndex), colX(cellIndex) + 0.5, yPos);
-        });
-        yPos += rowH;
+        const bodyLay = rowBodyLayout(rowData);
+        const nextRowH = rowHeightForLayouts(bodyLay.layouts, bodyLay.fs);
+        if (yPos + nextRowH > maxY) {
+            doc.addPage();
+            yPos = margin + 4;
+            yPos = drawHeaderRow(yPos);
+        }
+
+        yPos += drawBodyRowAt(yPos, rowData, bodyLay.fs, bodyLay.layouts);
     });
 
     const filename = `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;

@@ -1379,7 +1379,7 @@ body.authenticated .header { display:block !important; }
               <option value="dateIn">Date In</option>
               <option value="createdAt">Created Date</option>
               <option value="soldAt">Sold Date</option>
-              <option value="diedAt">Death Date</option>
+              <option value="diedAt">Mortality Date</option>
             </select>
           </div>
           <div class="inventory-field">
@@ -2418,7 +2418,8 @@ window.generateInventorySummary = function(){
         <td><span class="crab-status status-${status}">${cap(c.weeklyStatus||'—')}</span></td>
         <td>${c.location||'—'}</td>
         <td class="inv-date">${c.dateIn||'—'}</td>
-        <td class="inv-date">${exitDate}</td>
+        <td class="inv-date">${c.diedAt ? formatDate(c.diedAt) : '—'}</td>
+        <td class="inv-date">${c.soldAt ? formatDate(c.soldAt) : '—'}</td>
         <td class="inv-num">${c.originWeight!=null?c.originWeight+'g':'—'}</td>
         <td class="inv-num">${c.currentWeight!=null?c.currentWeight+'g':'—'}</td>
         <td>${cap(c.gender||'—')}</td>
@@ -2444,7 +2445,8 @@ window.generateInventorySummary = function(){
                 <th>Status</th>
                 <th>Location</th>
                 <th>Date In</th>
-                <th>Date Out</th>
+                <th>Mortality Date</th>
+                <th>Sold Date</th>
                 <th>Origin Wt.</th>
                 <th>Current Wt.</th>
                 <th>Gender</th>
