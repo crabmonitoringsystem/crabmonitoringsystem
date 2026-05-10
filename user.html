@@ -1166,7 +1166,7 @@ function buildChangelog(oldData, newData) {
     return changes;
 }
 
-async function writeLog(action, boxNo, snapshot, changes, eventBy, eventTs, crabId) {
+async function writeLog(action, boxNo, snapshot, changes, eventBy, eventTs) {
     const { db, ref, push } = window._fb;
     try {
         await push(ref(db, 'activityLog'), {
@@ -1175,7 +1175,6 @@ async function writeLog(action, boxNo, snapshot, changes, eventBy, eventTs, crab
             eventBy,
             eventTs: eventTs || Date.now(),
             changes: changes || {},
-            crabId:        crabId || null,
             dateIn:        snapshot.dateIn        || null,
             crabOrigin:    snapshot.crabOrigin    || null,
             gender:        snapshot.gender        || null,
@@ -1376,75 +1375,13 @@ window.updateAgePreview=()=>{
 };
 function setDateInMax(){ document.getElementById('dateIn').max=getTodayString(); }
 function isBoxTaken(boxNoVal,excludeKey){ return (window._allCrabs||[]).some(c=>(c.boxNo||'').toUpperCase()===boxNoVal&&c.id!==excludeKey); }
-/** Same calendar day for stored vs form Date In (handles minor format differences). */
-function dateInSame(stored, formVal){
-    const a=(stored||'').trim(), b=(formVal||'').trim();
-    if(a===b) return true;
-    try{
-        const d1=new Date(a), d2=new Date(b);
-        if(!isNaN(d1)&&!isNaN(d2)) return d1.toISOString().split('T')[0]===d2.toISOString().split('T')[0];
-    }catch(e){}
-    return false;
-}
-function sameOriginWeight(stored, formVal){
-    const x=parseFloat(stored), y=parseFloat(formVal);
-    const nx=isNaN(x), ny=isNaN(y);
-    if(nx&&ny) return true;
-    if(nx||ny) return false;
-    return Math.abs(x-y)<1e-6;
-}
-/**
- * Identity used only for duplicate blocking (new adds). Must stay in sync with admin delete matching.
- * Compared: box, date in, crab origin, location, class, type, gender, original weight.
- * Not compared (changes never unblock/block alone): current weight, weekly status, notes, timestamps.
- */
-function duplicateIdentityFromForm(){
-    return{
-        crabOrigin:(document.getElementById('crabOrigin')?.value||'').toLowerCase().trim(),
-        location:(document.getElementById('location')?.value||'').toLowerCase().trim(),
-        crabClass:(document.getElementById('crabClass')?.value||'').toLowerCase().trim(),
-        crabType:(document.getElementById('crabType')?.value||'').toLowerCase().trim(),
-        gender:(document.getElementById('gender')?.value||'').toLowerCase().trim(),
-        originWeight:document.getElementById('originWeight')?.value
-    };
-}
-function matchesDuplicateIdentity(c,boxNoVal,dateInVal,cur,excludeKey){
-    if(excludeKey&&c.id===excludeKey) return false;
-    if((c.boxNo||'').toUpperCase().trim()!==boxNoVal) return false;
-    if(!dateInSame(c.dateIn,dateInVal)) return false;
-    if((c.crabOrigin||'').toLowerCase().trim()!==cur.crabOrigin) return false;
-    if((c.location||'').toLowerCase().trim()!==cur.location) return false;
-    if((c.crabClass||'').toLowerCase().trim()!==cur.crabClass) return false;
-    if((c.crabType||'').toLowerCase().trim()!==cur.crabType) return false;
-    if((c.gender||'').toLowerCase().trim()!==cur.gender) return false;
-    if(!sameOriginWeight(c.originWeight,cur.originWeight)) return false;
-    return true;
-}
-/**
- * Fresh read from Firebase before save. Blocks if an active or archived (sold/dead) row matches full identity.
- * After admin deletes that row from Firebase, no match → save allowed. Ignores current weight per business rule.
- */
-async function checkDuplicateFromFirebase(boxNoVal,dateInVal,excludeKey){
-    const{db,ref,get}=window._fb;
-    const cur=duplicateIdentityFromForm();
-    const [crabsSnap,delSnap]=await Promise.all([get(ref(db,'crabs')),get(ref(db,'deletedCrabs'))]);
-    const activeVal=crabsSnap.exists()?crabsSnap.val():{};
-    const delVal=delSnap.exists()?delSnap.val():{};
-    for(const [id,c] of Object.entries(activeVal)){
-        const row={id,...c};
-        if(matchesDuplicateIdentity(row,boxNoVal,dateInVal,cur,excludeKey)){
-            console.log(`[DupCheck] BLOCKED (server) Active ${id}`);
-            return { conflict:true, record:row, src:'Active' };
-        }
-    }
-    for(const [id,c] of Object.entries(delVal)){
-        const row={id,...c};
-        if(matchesDuplicateIdentity(row,boxNoVal,dateInVal,cur,excludeKey)){
-            console.log(`[DupCheck] BLOCKED (server) Archive ${id}`);
-            return { conflict:true, record:row, src:'Archive' };
-        }
-    }
-    return { conflict:false };
+function hasBoxDateConflict(boxNoVal,dateInVal,excludeKey){
+    const allRecords=[...(window._allCrabs||[]),...(window._deletedCrabs||[])];
+    return allRecords.some(c=>
+        (c.boxNo||'').toUpperCase()===boxNoVal &&
+        (c.dateIn||'')===dateInVal &&
+        c.id!==excludeKey
+    );
 }
 
 /* FORM SUBMIT — ADD & EDIT (with activityLog) */
@@ -1462,16 +1399,8 @@ document.getElementById('crabDataForm').addEventListener('submit', async e=>{
     try{
         const{db,ref,set,push,get}=window._fb;
 
-        if(!key){
-            const dupCheck=await checkDuplicateFromFirebase(boxNoVal,dateInVal,null);
-            if(dupCheck.conflict){
-                const rec=dupCheck.record;
-                const recIdShort=(rec.id||'').slice(-6);
-                const recStatus=rec.weeklyStatus||'unknown';
-                showToast(`❌ Duplicate blocked by ${dupCheck.src} record ${recIdShort} (status: ${recStatus}). Another row already has the same box, date in, origin, location, class, type, gender, and original weight (current weight is ignored). Delete the old row in Admin first if you need to re-enter.`,'error');
-                btn.disabled=false; btn.innerHTML='💾 Save Data'; return;
-            }
-        }
+        if(!key&&isBoxTaken(boxNoVal,null)){ showToast(`❌ Box ${boxNoVal} is already in use!`,'error'); btn.disabled=false; btn.innerHTML='💾 Save Data'; return; }
+        if(hasBoxDateConflict(boxNoVal,dateInVal,key||null)){ showToast(`❌ Duplicate detected: Box ${boxNoVal} with Date In ${dateInVal} already exists.`,'error'); btn.disabled=false; btn.innerHTML='💾 Save Data'; return; }
 
         if(key){
             let existing=window._allCrabs.find(c=>c.id===key);
@@ -1500,18 +1429,18 @@ document.getElementById('crabDataForm').addEventListener('submit', async e=>{
                 const finalData={...data,soldAt:now,soldBy:currentUser};
                 await set(ref(db,`deletedCrabs/${key}`),finalData);
                 await set(ref(db,`crabs/${key}`),null);
-                await writeLog('sold', boxNoVal, finalData, {}, currentUser, now, key);
+                await writeLog('sold', boxNoVal, finalData, {}, currentUser, now);
                 showToast(`🏷️ ${boxNoVal} marked as Sold — box is now free!`,'success');
             } else if(isDead){
                 const finalData={...data,diedAt:data.diedAt||now,diedBy:data.diedBy||currentUser};
                 await set(ref(db,`deletedCrabs/${key}`),finalData);
                 await set(ref(db,`crabs/${key}`),null);
-                await writeLog('dead', boxNoVal, finalData, {}, currentUser, now, key);
+                await writeLog('dead', boxNoVal, finalData, {}, currentUser, now);
                 showToast(`💀 ${boxNoVal} marked as Dead — box is now free!`,'success');
             } else {
                 await set(ref(db,`crabs/${key}`),data);
                 if(Object.keys(changelog).length > 0){
-                    await writeLog('updated', boxNoVal, data, changelog, currentUser, now, key);
+                    await writeLog('updated', boxNoVal, data, changelog, currentUser, now);
                 }
                 showToast(`✅ ${boxNoVal} updated!`,'success');
             }
@@ -1522,17 +1451,17 @@ document.getElementById('crabDataForm').addEventListener('submit', async e=>{
 
             if(isSold){
                 const finalData={...data,soldAt:now,soldBy:currentUser};
-                const newRef = await push(ref(db,'deletedCrabs'),finalData);
-                await writeLog('sold', boxNoVal, finalData, {}, currentUser, now, newRef.key);
+                await push(ref(db,'deletedCrabs'),finalData);
+                await writeLog('sold', boxNoVal, finalData, {}, currentUser, now);
                 showToast(`🏷️ ${boxNoVal} recorded as Sold!`,'success');
             } else if(isDead){
                 const finalData={...data,diedAt:now,diedBy:currentUser};
-                const newRef = await push(ref(db,'deletedCrabs'),finalData);
-                await writeLog('dead', boxNoVal, finalData, {}, currentUser, now, newRef.key);
+                await push(ref(db,'deletedCrabs'),finalData);
+                await writeLog('dead', boxNoVal, finalData, {}, currentUser, now);
                 showToast(`💀 ${boxNoVal} recorded as Dead!`,'success');
             } else {
-                const newRef = await push(ref(db,'crabs'),data);
-                await writeLog('added', boxNoVal, data, {}, currentUser, now, newRef.key);
+                await push(ref(db,'crabs'),data);
+                await writeLog('added', boxNoVal, data, {}, currentUser, now);
                 showToast(`✅ ${boxNoVal} saved!`,'success');
             }
         }
@@ -1583,7 +1512,7 @@ window.deleteCrab=async(key,boxNo)=>{
                 createdAt:data.createdAt||data.timestamp,addedBy:data.addedBy||data.recordedBy||remover,
                 updatedAt:data.updatedAt||null,updatedBy:data.updatedBy||null};
             await set(ref(db,`deletedCrabs/${key}`),finalData);
-            await writeLog('removed', boxNo, finalData, {}, remover, Date.now(), key);
+            await writeLog('removed', boxNo, finalData, {}, remover, Date.now());
         }
         await set(ref(db,`crabs/${key}`),null);
         showToast(`✅ ${boxNo} deleted!`,'success');
