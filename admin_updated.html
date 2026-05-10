@@ -2136,8 +2136,8 @@ function refreshOverview(){
   const dead        = deleted.filter(c => c.weeklyStatus === 'Dead').length;
   const sold        = deleted.filter(c => c.weeklyStatus === 'Sold').length;
   const total       = crabs.filter(c => (c.weeklyStatus || '').toLowerCase() !== 'sold' && (c.weeklyStatus || '').toLowerCase() !== 'dead').length;
-  const allRecords  = total + sold + dead;
-  const mortality   = allRecords > 0 ? Math.round((dead / allRecords) * 100) : 0;
+  const mortalityBase = total + dead;
+  const mortality = mortalityBase > 0 ? Math.round((dead / mortalityBase) * 100) : 0;
   const s=(id,v)=>{document.getElementById(id).textContent=v;};
   const sc=(id,v,cls)=>{const el=document.getElementById(id);el.textContent=v;if(cls)el.className='stat-change '+cls;};
   s('ovTotal',total);sc('ovTotalSub',`${total} active crab${total !== 1 ? 's' : ''}`,'positive');
@@ -2504,167 +2504,21 @@ function histStatusStyle(weeklyStatus, action){
   return { label, bg, color };
 }
 
-function scoreMatch(e,d){
-  let score=0;
-  if((e.dateIn||'')===(d.dateIn||'')) score+=10;
-  if((e.crabType||'').toLowerCase()===(d.crabType||'').toLowerCase()) score+=5;
-  if((e.crabClass||'').toLowerCase()===(d.crabClass||'').toLowerCase()) score+=5;
-  if((e.gender||'').toLowerCase()===(d.gender||'').toLowerCase()) score+=5;
-  if((e.crabOrigin||'').toLowerCase()===(d.crabOrigin||'').toLowerCase()) score+=5;
-  if((e.location||'').toLowerCase()===(d.location||'').toLowerCase()) score+=5;
-  const ts=Number(e.eventTs)||0;
-  const t=Number(d.soldAt||d.diedAt||d.removedAt||d.timestamp||0);
-  if(t&&ts) score+=Math.max(0,20-Math.abs(t-ts)/86400000);
-  return score;
-}
-
 function archivedCrabKeyForEvent(e){
   const box=(e.boxNo||'').toUpperCase().trim();
-  const dateIn=e.dateIn||'';
   if(!box) return null;
-
-  // 0. Direct link: if activityLog has crabId, use it (new records from now on)
-  if(e.crabId){
-    const direct=(window._deletedCrabs||[]).find(d=>d.id===e.crabId);
-    if(direct){
-      console.log(`[archId] Direct match via crabId ${e.crabId}`);
-      return direct.id;
-    }
-  }
-
-  // 1. Exact match: box + dateIn + type + class + gender + origin + location
-  let cand=(window._deletedCrabs||[]).filter(d=>
-    (d.boxNo||'').toUpperCase().trim()===box &&
-    (d.dateIn||'')===dateIn &&
-    (e.crabType||'').toLowerCase()===(d.crabType||'').toLowerCase() &&
-    (e.crabClass||'').toLowerCase()===(d.crabClass||'').toLowerCase() &&
-    (e.gender||'').toLowerCase()===(d.gender||'').toLowerCase() &&
-    (e.crabOrigin||'').toLowerCase()===(d.crabOrigin||'').toLowerCase() &&
-    (e.location||'').toLowerCase()===(d.location||'').toLowerCase()
-  );
-
-  // 2. Fallback: box + dateIn only
-  if(!cand.length){
-    cand=(window._deletedCrabs||[]).filter(d=>
-      (d.boxNo||'').toUpperCase().trim()===box &&
-      (d.dateIn||'')===dateIn
-    );
-  }
-
-  // 3. Fallback: box only
-  if(!cand.length){
-    cand=(window._deletedCrabs||[]).filter(d=>(d.boxNo||'').toUpperCase().trim()===box);
-  }
-
+  const cand=(window._deletedCrabs||[]).filter(d=>(d.boxNo||'').toUpperCase().trim()===box);
   if(!cand.length) return null;
-  if(cand.length===1){
-    console.log(`[archId] box=${box} date=${dateIn} → single match ${cand[0].id}`);
-    return cand[0].id;
-  }
-
-  // 4. Multiple candidates: pick highest score (field match + timestamp proximity)
-  let best=cand[0], bestScore=-1;
+  if(cand.length===1) return cand[0].id;
+  const ts=Number(e.eventTs)||0;
+  let best=cand[0], bestDiff=Infinity;
   for(const d of cand){
-    const s=scoreMatch(e,d);
-    if(s>bestScore){ bestScore=s; best=d; }
+    const t=Number(d.soldAt||d.diedAt||d.removedAt||d.timestamp||0);
+    const diff=(t&&ts)?Math.abs(t-ts):Infinity;
+    if(diff<bestDiff){ bestDiff=diff; best=d; }
   }
-  console.log(`[archId] box=${box} date=${dateIn} → picked ${best.id} from ${cand.length} candidates (score=${bestScore})`);
   return best.id;
 }
-
-function dateMatches(stored, target){
-  if(!stored || !target) return false;
-  if(stored===target) return true;
-  // Try normalizing both to YYYY-MM-DD
-  try{
-    const d1=new Date(stored), d2=new Date(target);
-    if(!isNaN(d1)&&!isNaN(d2)){
-      const n1=d1.toISOString().split('T')[0];
-      const n2=d2.toISOString().split('T')[0];
-      return n1===n2;
-    }
-  }catch(e){}
-  return false;
-}
-
-window.findBoxDate = async (boxNo) => {
-  const { db, ref, get } = window._fb;
-  const boxUp = (boxNo || '').toUpperCase().trim();
-  console.log(`[findBoxDate] Searching for ${boxUp}...`);
-  const results = [];
-
-  const activeSnap = await get(ref(db, 'crabs'));
-  if(activeSnap.exists()){
-    Object.entries(activeSnap.val()).forEach(([id,c])=>{
-      if((c.boxNo||'').toUpperCase().trim()===boxUp){
-        results.push({id, collection:'crabs', dateIn:c.dateIn, status:c.weeklyStatus});
-      }
-    });
-  }
-  const archiveSnap = await get(ref(db, 'deletedCrabs'));
-  if(archiveSnap.exists()){
-    Object.entries(archiveSnap.val()).forEach(([id,c])=>{
-      if((c.boxNo||'').toUpperCase().trim()===boxUp){
-        results.push({id, collection:'deletedCrabs', dateIn:c.dateIn, status:c.weeklyStatus});
-      }
-    });
-  }
-  console.table(results);
-  return results;
-};
-
-window.forceDeleteBoxDate = async (boxNo, dateIn) => {
-  const { db, ref, set, get } = window._fb;
-  const boxUp = (boxNo || '').toUpperCase().trim();
-  const di = dateIn || '';
-  if (!boxUp || !di) { console.error('Usage: forceDeleteBoxDate("A3-01", "2026-03-20")'); return; }
-
-  let removedCrabs = 0, removedLogs = 0;
-
-  // 1. Delete from active crabs (exact or normalized date match)
-  const activeSnap = await get(ref(db, 'crabs'));
-  if (activeSnap.exists()) {
-    const entries = Object.entries(activeSnap.val());
-    for (const [id, c] of entries) {
-      if ((c.boxNo || '').toUpperCase().trim() === boxUp && dateMatches(c.dateIn, di)) {
-        await set(ref(db, `crabs/${id}`), null);
-        removedCrabs++;
-        console.log(`[forceDelete] Removed active crab ${id} (date: ${c.dateIn})`);
-      }
-    }
-  }
-
-  // 2. Delete from deletedCrabs
-  const archiveSnap = await get(ref(db, 'deletedCrabs'));
-  if (archiveSnap.exists()) {
-    const entries = Object.entries(archiveSnap.val());
-    for (const [id, c] of entries) {
-      if ((c.boxNo || '').toUpperCase().trim() === boxUp && dateMatches(c.dateIn, di)) {
-        await set(ref(db, `deletedCrabs/${id}`), null);
-        await set(ref(db, `restoreHistory/${id}`), null);
-        removedCrabs++;
-        console.log(`[forceDelete] Removed archived crab ${id} (date: ${c.dateIn})`);
-      }
-    }
-  }
-
-  // 3. Delete matching activityLog entries
-  const logSnap = await get(ref(db, 'activityLog'));
-  if (logSnap.exists()) {
-    const entries = Object.entries(logSnap.val());
-    for (const [id, e] of entries) {
-      if ((e.boxNo || '').toUpperCase().trim() === boxUp && dateMatches(e.dateIn, di)) {
-        await set(ref(db, `activityLog/${id}`), null);
-        removedLogs++;
-        console.log(`[forceDelete] Removed activityLog ${id} (date: ${e.dateIn})`);
-      }
-    }
-  }
-
-  console.log(`[forceDelete] DONE: ${removedCrabs} crab records, ${removedLogs} log entries deleted.`);
-  showToast(`${boxUp} / ${di} force-deleted: ${removedCrabs} crabs, ${removedLogs} logs`, 'info');
-  if (typeof filterHistory === 'function') filterHistory();
-};
 
 window.filterHistory=()=>{
   const q=(document.getElementById('histSearch')?.value||'').toLowerCase();
@@ -2745,20 +2599,10 @@ window.renderHistoryTable = () => {
     const boxNo=e.boxNo||'—';
     const archId=archivedCrabKeyForEvent(e);
     const boxEsc=(boxNo||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const evId=e.id||'';
-    const evDateIn=e.dateIn||'';
-    const evType=e.crabType||'';
-    const evClass=e.crabClass||'';
-    const evGender=e.gender||'';
-    const evOrigin=e.crabOrigin||'';
-    const evLoc=e.location||'';
-    const evOrigW=e.originWeight!=null?e.originWeight:'';
-    const evCurrW=e.currentWeight!=null?e.currentWeight:'';
     const actionCell = archId
       ? `<button class="tbl-btn success" title="Restore to healthy" onclick="restoreCrab('${archId}','${boxEsc}')" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">↩ Restore</button>
-         <button class="tbl-btn danger" title="Permanently delete" onclick="confirmDeleteRecord('${evId}','${boxEsc}','${evDateIn}','${evType}','${evClass}','${evGender}','${evOrigin}','${evLoc}','${evOrigW}','${evCurrW}','${archId||''}')" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">🗑 Delete</button>`
-      : `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.68rem;font-weight:700;background:#d4edda;color:#155724;">● Active</span>
-         <button class="tbl-btn danger" title="Permanently delete" onclick="confirmDeleteRecord('${evId}','${boxEsc}','${evDateIn}','${evType}','${evClass}','${evGender}','${evOrigin}','${evLoc}','${evOrigW}','${evCurrW}','')" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">🗑 Delete</button>`;
+         <button class="tbl-btn danger" title="Permanently delete" onclick="confirmDeleteRecord('${archId}','${boxEsc}',true)" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">🗑 Delete</button>`
+      : `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.68rem;font-weight:700;background:#d4edda;color:#155724;">● Active</span>`;
 
     const seq = startIndex + idx + 1;
     return `<tr class="row-${action||'added'}">
@@ -2838,78 +2682,46 @@ window.changeRowsPerPage = () => {
   renderHistoryTable();
 };
 
-/**
- * History Delete — (1) removes this one activity log row; (2) removes the matching crab record if found
- * (same identity as duplicate checks: box, date, origin, location, class, type, gender, original weight — not current weight).
- * Does NOT delete other history lines for the same box (no blanket log purge).
- */
-window.confirmDeleteRecord=(eventKey,boxNo,dateIn,crabType,crabClass,gender,crabOrigin,location,originWeight,currentWeight,archId)=>{
-  showConfirm(`Delete this history line for <strong>${boxNo}</strong> <strong>and</strong> the matching crab in inventory (active or sold/dead archive) when it matches this row?<br><span style="font-size:.85rem;opacity:.9;">Other history rows for this box stay. Only one log entry is removed; crab removal uses full identity match (not box-only).</span>`,async()=>{
-    const{db,ref,set,get}=window._fb;
+async function purgeActivityLogForCrab(crab){
+  const { db, ref, get, set } = window._fb;
+  const box = crab?.boxNo || '';
+  const dateIn = crab?.dateIn || '';
+  if(!box) return 0;
+  try{
+    const snap = await get(ref(db,'activityLog'));
+    if(!snap.exists()) return 0;
+    const logs = snap.val() || {};
+    const keysToDelete = Object.entries(logs)
+      .filter(([,entry])=>{
+        if((entry?.boxNo||'') !== box) return false;
+        if(dateIn && (entry?.dateIn||'')) return (entry.dateIn === dateIn);
+        return true;
+      })
+      .map(([logKey])=>logKey);
+    if(!keysToDelete.length) return 0;
+    await Promise.all(keysToDelete.map(logKey=>set(ref(db,`activityLog/${logKey}`),null)));
+    return keysToDelete.length;
+  }catch(err){
+    console.warn('Failed to purge activityLog entries:', err);
+    return 0;
+  }
+}
+
+window.confirmDeleteRecord=(key,boxNo,isArchived)=>{
+  showConfirm(`Permanently delete record for <strong>${boxNo}</strong>? This cannot be undone and will remove matching entries from the shared activity log (same as User History).`,async()=>{
+    const{db,ref,set}=window._fb;
     try{
-      if(!eventKey){
-        showToast('Nothing to delete — missing log id.','error');
-        return;
+      const source = isArchived===false ? (window._allCrabs||[]) : (window._deletedCrabs||[]);
+      const crab = source.find(c=>c.id===key) || { id:key, boxNo };
+      const removedLogs = await purgeActivityLogForCrab(crab);
+      if(isArchived===false){
+        await set(ref(db,`crabs/${key}`),null);
+      } else {
+        await set(ref(db,`deletedCrabs/${key}`),null);
+        await set(ref(db,`restoreHistory/${key}`),null);
       }
-      await set(ref(db,`activityLog/${eventKey}`),null);
-      let removedLogs=1;
-
-      function sameOw(a,b){
-        const x=parseFloat(a), y=parseFloat(b);
-        const nx=isNaN(x), ny=isNaN(y);
-        if(nx&&ny) return true;
-        if(nx||ny) return false;
-        return Math.abs(x-y)<1e-6;
-      }
-
-      let delCrabs=0;
-      const di=dateIn||'';
-
-      if(archId){
-        await set(ref(db,`deletedCrabs/${archId}`),null);
-        await set(ref(db,`restoreHistory/${archId}`),null);
-        delCrabs++;
-        console.log(`[AdminDelete] Deleted archived crab ${archId} (arch id from row)`);
-      } else if(di){
-        const boxUp=(boxNo||'').toUpperCase().trim();
-        const typeL=(crabType||'').toLowerCase().trim();
-        const classL=(crabClass||'').toLowerCase().trim();
-        const genderL=(gender||'').toLowerCase().trim();
-        const originL=(crabOrigin||'').toLowerCase().trim();
-        const locL=(location||'').toLowerCase().trim();
-        const owForm=parseFloat(originWeight||0);
-        function matchesFullIdentity(c){
-          if((c.boxNo||'').toUpperCase().trim()!==boxUp) return false;
-          if(!dateMatches(c.dateIn||'', di)) return false;
-          if((c.crabType||'').toLowerCase().trim()!==typeL) return false;
-          if((c.crabClass||'').toLowerCase().trim()!==classL) return false;
-          if((c.gender||'').toLowerCase().trim()!==genderL) return false;
-          if((c.crabOrigin||'').toLowerCase().trim()!==originL) return false;
-          if((c.location||'').toLowerCase().trim()!==locL) return false;
-          return sameOw(c.originWeight, owForm);
-        }
-        const activeSnap=await get(ref(db,'crabs'));
-        const archiveSnap=await get(ref(db,'deletedCrabs'));
-        const activeIds=activeSnap.exists()?Object.entries(activeSnap.val()).filter(([,c])=>matchesFullIdentity(c)).map(([id])=>id):[];
-        const archiveIds=archiveSnap.exists()?Object.entries(archiveSnap.val()).filter(([,c])=>matchesFullIdentity(c)).map(([id])=>id):[];
-        for(const id of activeIds){
-          await set(ref(db,`crabs/${id}`),null);
-          delCrabs++;
-          console.log(`[AdminDelete] Deleted active crab ${id}`);
-        }
-        for(const id of archiveIds){
-          await set(ref(db,`deletedCrabs/${id}`),null);
-          await set(ref(db,`restoreHistory/${id}`),null);
-          delCrabs++;
-          console.log(`[AdminDelete] Deleted archived crab ${id}`);
-        }
-      }
-
-      const parts=[`Removed 1 history entry`];
-      if(delCrabs) parts.push(`${delCrabs} matching crab record${delCrabs!==1?'s':''} in Firebase`);
-      else parts.push(`no matching crab row found (inventory unchanged)`);
-      showToast(parts.join(' • '),'success');
-      if(typeof filterHistory==='function') filterHistory();
+      showToast(`${boxNo} deleted${removedLogs?` • ${removedLogs} log entr${removedLogs!==1?'ies':'y'} removed`:''}`,'info');
+      if (typeof filterHistory === 'function') filterHistory();
     }catch(e){showToast(e.message,'error');}
   });
 };
