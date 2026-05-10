@@ -2136,8 +2136,8 @@ function refreshOverview(){
   const dead        = deleted.filter(c => c.weeklyStatus === 'Dead').length;
   const sold        = deleted.filter(c => c.weeklyStatus === 'Sold').length;
   const total       = crabs.filter(c => (c.weeklyStatus || '').toLowerCase() !== 'sold' && (c.weeklyStatus || '').toLowerCase() !== 'dead').length;
-  const mortalityBase = total + dead;
-  const mortality = mortalityBase > 0 ? Math.round((dead / mortalityBase) * 100) : 0;
+  const allRecords  = total + sold + dead;
+  const mortality   = allRecords > 0 ? Math.round((dead / allRecords) * 100) : 0;
   const s=(id,v)=>{document.getElementById(id).textContent=v;};
   const sc=(id,v,cls)=>{const el=document.getElementById(id);el.textContent=v;if(cls)el.className='stat-change '+cls;};
   s('ovTotal',total);sc('ovTotalSub',`${total} active crab${total !== 1 ? 's' : ''}`,'positive');
