@@ -1376,49 +1376,72 @@ window.updateAgePreview=()=>{
 };
 function setDateInMax(){ document.getElementById('dateIn').max=getTodayString(); }
 function isBoxTaken(boxNoVal,excludeKey){ return (window._allCrabs||[]).some(c=>(c.boxNo||'').toUpperCase()===boxNoVal&&c.id!==excludeKey); }
-function hasBoxDateConflict(boxNoVal,dateInVal,excludeKey){
-    const allRecords=[...(window._allCrabs||[]),...(window._deletedCrabs||[])];
-    // Find ALL records with same box+date (not just the first one)
-    const matches=allRecords.filter(c=>
-        (c.boxNo||'').toUpperCase()===boxNoVal &&
-        (c.dateIn||'')===dateInVal &&
-        c.id!==excludeKey
-    );
-    if(!matches.length) return { conflict:false };
-
-    // Current form values — compare only INTRINSIC identity fields
-    // (weights excluded: they change during a crab's lifecycle and shouldn't allow re-adding same crab)
-    const currentFields={
-        crabType:  (document.getElementById('crabType')?.value||'').toLowerCase(),
-        crabClass: (document.getElementById('crabClass')?.value||'').toLowerCase(),
-        gender:    (document.getElementById('gender')?.value||'').toLowerCase(),
-        crabOrigin:(document.getElementById('crabOrigin')?.value||'').toLowerCase(),
-        location:  (document.getElementById('location')?.value||'').toLowerCase()
+/** Same calendar day for stored vs form Date In (handles minor format differences). */
+function dateInSame(stored, formVal){
+    const a=(stored||'').trim(), b=(formVal||'').trim();
+    if(a===b) return true;
+    try{
+        const d1=new Date(a), d2=new Date(b);
+        if(!isNaN(d1)&&!isNaN(d2)) return d1.toISOString().split('T')[0]===d2.toISOString().split('T')[0];
+    }catch(e){}
+    return false;
+}
+function sameOriginWeight(stored, formVal){
+    const x=parseFloat(stored), y=parseFloat(formVal);
+    const nx=isNaN(x), ny=isNaN(y);
+    if(nx&&ny) return true;
+    if(nx||ny) return false;
+    return Math.abs(x-y)<1e-6;
+}
+/**
+ * Identity used only for duplicate blocking (new adds). Must stay in sync with admin delete matching.
+ * Compared: box, date in, crab origin, location, class, type, gender, original weight.
+ * Not compared (changes never unblock/block alone): current weight, weekly status, notes, timestamps.
+ */
+function duplicateIdentityFromForm(){
+    return{
+        crabOrigin:(document.getElementById('crabOrigin')?.value||'').toLowerCase().trim(),
+        location:(document.getElementById('location')?.value||'').toLowerCase().trim(),
+        crabClass:(document.getElementById('crabClass')?.value||'').toLowerCase().trim(),
+        crabType:(document.getElementById('crabType')?.value||'').toLowerCase().trim(),
+        gender:(document.getElementById('gender')?.value||'').toLowerCase().trim(),
+        originWeight:document.getElementById('originWeight')?.value
     };
-
-    for(const match of matches){
-        const matchFields={
-            crabType:  (match.crabType||'').toLowerCase(),
-            crabClass: (match.crabClass||'').toLowerCase(),
-            gender:    (match.gender||'').toLowerCase(),
-            crabOrigin:(match.crabOrigin||'').toLowerCase(),
-            location:  (match.location||'').toLowerCase()
-        };
-
-        const diffs=[];
-        if(currentFields.crabType   !== matchFields.crabType)   diffs.push(`type`);
-        if(currentFields.crabClass  !== matchFields.crabClass)  diffs.push(`class`);
-        if(currentFields.gender     !== matchFields.gender)     diffs.push(`gender`);
-        if(currentFields.crabOrigin !== matchFields.crabOrigin) diffs.push(`origin`);
-        if(currentFields.location   !== matchFields.location)   diffs.push(`location`);
-
-        const isDup = diffs.length===0;
-        const src = window._allCrabs.includes(match) ? 'Active' : 'Archive';
-        if(isDup){
-            console.log(`[DupCheck] BLOCKED by ${src} record ${match.id}`);
-            return { conflict:true, record:match, src };
-        } else {
-            console.log(`[DupCheck] Match ${match.id} (${src}) allowed — differs in:`, diffs.join(', '));
+}
+function matchesDuplicateIdentity(c,boxNoVal,dateInVal,cur,excludeKey){
+    if(excludeKey&&c.id===excludeKey) return false;
+    if((c.boxNo||'').toUpperCase().trim()!==boxNoVal) return false;
+    if(!dateInSame(c.dateIn,dateInVal)) return false;
+    if((c.crabOrigin||'').toLowerCase().trim()!==cur.crabOrigin) return false;
+    if((c.location||'').toLowerCase().trim()!==cur.location) return false;
+    if((c.crabClass||'').toLowerCase().trim()!==cur.crabClass) return false;
+    if((c.crabType||'').toLowerCase().trim()!==cur.crabType) return false;
+    if((c.gender||'').toLowerCase().trim()!==cur.gender) return false;
+    if(!sameOriginWeight(c.originWeight,cur.originWeight)) return false;
+    return true;
+}
+/**
+ * Fresh read from Firebase before save. Blocks if an active or archived (sold/dead) row matches full identity.
+ * After admin deletes that row from Firebase, no match → save allowed. Ignores current weight per business rule.
+ */
+async function checkDuplicateFromFirebase(boxNoVal,dateInVal,excludeKey){
+    const{db,ref,get}=window._fb;
+    const cur=duplicateIdentityFromForm();
+    const [crabsSnap,delSnap]=await Promise.all([get(ref(db,'crabs')),get(ref(db,'deletedCrabs'))]);
+    const activeVal=crabsSnap.exists()?crabsSnap.val():{};
+    const delVal=delSnap.exists()?delSnap.val():{};
+    for(const [id,c] of Object.entries(activeVal)){
+        const row={id,...c};
+        if(matchesDuplicateIdentity(row,boxNoVal,dateInVal,cur,excludeKey)){
+            console.log(`[DupCheck] BLOCKED (server) Active ${id}`);
+            return { conflict:true, record:row, src:'Active' };
+        }
+    }
+    for(const [id,c] of Object.entries(delVal)){
+        const row={id,...c};
+        if(matchesDuplicateIdentity(row,boxNoVal,dateInVal,cur,excludeKey)){
+            console.log(`[DupCheck] BLOCKED (server) Archive ${id}`);
+            return { conflict:true, record:row, src:'Archive' };
         }
     }
     return { conflict:false };
@@ -1431,22 +1454,24 @@ document.getElementById('crabDataForm').addEventListener('submit', async e=>{
     const key=window._editingKey, boxNoVal=document.getElementById('boxNo').value.trim().toUpperCase();
     const dateInVal=document.getElementById('dateIn').value, today=getTodayString();
     if(dateInVal>today){ showToast('❌ Date In cannot be a future date!','error'); btn.disabled=false; btn.innerHTML='💾 Save Data'; return; }
-    if(!key){
-        const dupCheck = hasBoxDateConflict(boxNoVal,dateInVal,null);
-        if(dupCheck.conflict){
-            const rec = dupCheck.record;
-            const recIdShort = (rec.id||'').slice(-6);
-            const recStatus = rec.weeklyStatus || 'unknown';
-            showToast(`❌ Duplicate blocked by ${dupCheck.src} record ${recIdShort} (status: ${recStatus}). Box ${boxNoVal} / ${dateInVal} already exists with identical data.`,'error');
-            btn.disabled=false; btn.innerHTML='💾 Save Data'; return;
-        }
-    }
+    if(!window._fb){ showToast('❌ Firebase not ready. Please wait and try again.','error'); btn.disabled=false; btn.innerHTML='💾 Save Data'; return; }
     const currentUser=(()=>{ try{ return JSON.parse(sessionStorage.getItem('crabMonitoringSession'))?.username||'Unknown'; }catch{ return 'Unknown'; } })();
     const now=Date.now();
     const baseData={ dateIn:dateInVal, boxNo:boxNoVal, crabOrigin:document.getElementById('crabOrigin').value, gender:document.getElementById('gender').value, crabType:document.getElementById('crabType').value, crabClass:document.getElementById('crabClass').value, originWeight:parseFloat(document.getElementById('originWeight').value), currentWeight:parseFloat(document.getElementById('currentWeight').value), weeklyStatus:document.getElementById('weeklyStatus').value, location:document.getElementById('location').value, notes:document.getElementById('notes').value, timestamp:now, recordedBy:currentUser };
     const isSold=baseData.weeklyStatus==='Sold', isDead=baseData.weeklyStatus==='Dead';
     try{
         const{db,ref,set,push,get}=window._fb;
+
+        if(!key){
+            const dupCheck=await checkDuplicateFromFirebase(boxNoVal,dateInVal,null);
+            if(dupCheck.conflict){
+                const rec=dupCheck.record;
+                const recIdShort=(rec.id||'').slice(-6);
+                const recStatus=rec.weeklyStatus||'unknown';
+                showToast(`❌ Duplicate blocked by ${dupCheck.src} record ${recIdShort} (status: ${recStatus}). Another row already has the same box, date in, origin, location, class, type, gender, and original weight (current weight is ignored). Delete the old row in Admin first if you need to re-enter.`,'error');
+                btn.disabled=false; btn.innerHTML='💾 Save Data'; return;
+            }
+        }
 
         if(key){
             let existing=window._allCrabs.find(c=>c.id===key);
