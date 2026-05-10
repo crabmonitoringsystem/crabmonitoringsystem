@@ -1232,7 +1232,8 @@ function updateStats(crabs,deleted){
     const dead=(deleted||[]).filter(c=>c.weeklyStatus==='Dead').length;
     const sold=(deleted||[]).filter(c=>c.weeklyStatus==='Sold').length;
     const total=crabs.filter(c=>(c.weeklyStatus||'').toLowerCase()!=='sold'&&(c.weeklyStatus||'').toLowerCase()!=='dead').length;
-    const mb=total+dead, mortality=mb>0?Math.round((dead/mb)*100):0;
+    const allRecords=total+sold+dead;
+    const mortality=allRecords>0?Math.round((dead/allRecords)*100):0;
     const aDays=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-days').length;
     const aW1=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week1').length;
     const aW2=crabs.filter(c=>ageBucket(computeAgeDays(c.dateIn))==='age-week2').length;
