@@ -1771,9 +1771,9 @@ window.downloadReportPDF = async () => {
     const tableW = pageW - margin * 2;
     const maxY = pageH - margin;
 
-    // Column widths (mm) — portrait, 11 columns (no Location)
-    const headers = ['Box No.', 'Type', 'Status', 'Crab Origin', 'Date In', 'Date Sold', 'Mortality', 'Origin Wt.', 'Current Wt.', 'Gender', 'Class'];
-    const colWidths = [16, 11, 15, 22, 20, 20, 20, 15, 16, 13, 15];
+    // Column widths (mm) — portrait, 12 columns (with Location)
+    const headers = ['Box No.', 'Type', 'Status', 'Location', 'Crab Origin', 'Date In', 'Date Sold', 'Mortality', 'Origin Wt.', 'Current Wt.', 'Gender', 'Class'];
+    const colWidths = [15, 10, 14, 16, 20, 18, 18, 18, 14, 15, 12, 14];
     const headFS = 7;
     const bodyFS = 7.5;
     const cellPadY = 1.8;
@@ -1862,6 +1862,7 @@ window.downloadReportPDF = async () => {
             crab.boxNo || crab.id || '—',
             crab.crabType || '—',
             capitalize(crab.weeklyStatus || '—'),
+            crab.location || '—',
             crab.crabOrigin || '—',
             dateIn,
             dateSold,
