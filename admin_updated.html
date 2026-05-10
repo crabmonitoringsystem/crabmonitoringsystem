@@ -2504,18 +2504,54 @@ function histStatusStyle(weeklyStatus, action){
   return { label, bg, color };
 }
 
+function scoreMatch(e,d){
+  let score=0;
+  if((e.dateIn||'')===(d.dateIn||'')) score+=10;
+  if((e.crabType||'').toLowerCase()===(d.crabType||'').toLowerCase()) score+=5;
+  if((e.crabClass||'').toLowerCase()===(d.crabClass||'').toLowerCase()) score+=5;
+  if((e.gender||'').toLowerCase()===(d.gender||'').toLowerCase()) score+=5;
+  if((e.crabOrigin||'').toLowerCase()===(d.crabOrigin||'').toLowerCase()) score+=5;
+  if((e.location||'').toLowerCase()===(d.location||'').toLowerCase()) score+=5;
+  const ts=Number(e.eventTs)||0;
+  const t=Number(d.soldAt||d.diedAt||d.removedAt||d.timestamp||0);
+  if(t&&ts) score+=Math.max(0,20-Math.abs(t-ts)/86400000);
+  return score;
+}
+
 function archivedCrabKeyForEvent(e){
   const box=(e.boxNo||'').toUpperCase().trim();
   const dateIn=e.dateIn||'';
   if(!box) return null;
 
-  // 1. Try exact match: box + dateIn
+  // 0. Direct link: if activityLog has crabId, use it (new records from now on)
+  if(e.crabId){
+    const direct=(window._deletedCrabs||[]).find(d=>d.id===e.crabId);
+    if(direct){
+      console.log(`[archId] Direct match via crabId ${e.crabId}`);
+      return direct.id;
+    }
+  }
+
+  // 1. Exact match: box + dateIn + type + class + gender + origin + location
   let cand=(window._deletedCrabs||[]).filter(d=>
     (d.boxNo||'').toUpperCase().trim()===box &&
-    (d.dateIn||'')===dateIn
+    (d.dateIn||'')===dateIn &&
+    (e.crabType||'').toLowerCase()===(d.crabType||'').toLowerCase() &&
+    (e.crabClass||'').toLowerCase()===(d.crabClass||'').toLowerCase() &&
+    (e.gender||'').toLowerCase()===(d.gender||'').toLowerCase() &&
+    (e.crabOrigin||'').toLowerCase()===(d.crabOrigin||'').toLowerCase() &&
+    (e.location||'').toLowerCase()===(d.location||'').toLowerCase()
   );
 
-  // 2. Fallback: match by box only (if date changed after archiving)
+  // 2. Fallback: box + dateIn only
+  if(!cand.length){
+    cand=(window._deletedCrabs||[]).filter(d=>
+      (d.boxNo||'').toUpperCase().trim()===box &&
+      (d.dateIn||'')===dateIn
+    );
+  }
+
+  // 3. Fallback: box only
   if(!cand.length){
     cand=(window._deletedCrabs||[]).filter(d=>(d.boxNo||'').toUpperCase().trim()===box);
   }
@@ -2526,15 +2562,13 @@ function archivedCrabKeyForEvent(e){
     return cand[0].id;
   }
 
-  // 3. Multiple candidates: pick closest by archive timestamp
-  const ts=Number(e.eventTs)||0;
-  let best=cand[0], bestDiff=Infinity;
+  // 4. Multiple candidates: pick highest score (field match + timestamp proximity)
+  let best=cand[0], bestScore=-1;
   for(const d of cand){
-    const t=Number(d.soldAt||d.diedAt||d.removedAt||d.timestamp||0);
-    const diff=(t&&ts)?Math.abs(t-ts):Infinity;
-    if(diff<bestDiff){ bestDiff=diff; best=d; }
+    const s=scoreMatch(e,d);
+    if(s>bestScore){ bestScore=s; best=d; }
   }
-  console.log(`[archId] box=${box} date=${dateIn} → picked ${best.id} from ${cand.length} candidates (diff=${bestDiff})`);
+  console.log(`[archId] box=${box} date=${dateIn} → picked ${best.id} from ${cand.length} candidates (score=${bestScore})`);
   return best.id;
 }
 

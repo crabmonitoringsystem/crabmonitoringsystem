@@ -1166,7 +1166,7 @@ function buildChangelog(oldData, newData) {
     return changes;
 }
 
-async function writeLog(action, boxNo, snapshot, changes, eventBy, eventTs) {
+async function writeLog(action, boxNo, snapshot, changes, eventBy, eventTs, crabId) {
     const { db, ref, push } = window._fb;
     try {
         await push(ref(db, 'activityLog'), {
@@ -1175,6 +1175,7 @@ async function writeLog(action, boxNo, snapshot, changes, eventBy, eventTs) {
             eventBy,
             eventTs: eventTs || Date.now(),
             changes: changes || {},
+            crabId:        crabId || null,
             dateIn:        snapshot.dateIn        || null,
             crabOrigin:    snapshot.crabOrigin    || null,
             gender:        snapshot.gender        || null,
@@ -1474,18 +1475,18 @@ document.getElementById('crabDataForm').addEventListener('submit', async e=>{
                 const finalData={...data,soldAt:now,soldBy:currentUser};
                 await set(ref(db,`deletedCrabs/${key}`),finalData);
                 await set(ref(db,`crabs/${key}`),null);
-                await writeLog('sold', boxNoVal, finalData, {}, currentUser, now);
+                await writeLog('sold', boxNoVal, finalData, {}, currentUser, now, key);
                 showToast(`🏷️ ${boxNoVal} marked as Sold — box is now free!`,'success');
             } else if(isDead){
                 const finalData={...data,diedAt:data.diedAt||now,diedBy:data.diedBy||currentUser};
                 await set(ref(db,`deletedCrabs/${key}`),finalData);
                 await set(ref(db,`crabs/${key}`),null);
-                await writeLog('dead', boxNoVal, finalData, {}, currentUser, now);
+                await writeLog('dead', boxNoVal, finalData, {}, currentUser, now, key);
                 showToast(`💀 ${boxNoVal} marked as Dead — box is now free!`,'success');
             } else {
                 await set(ref(db,`crabs/${key}`),data);
                 if(Object.keys(changelog).length > 0){
-                    await writeLog('updated', boxNoVal, data, changelog, currentUser, now);
+                    await writeLog('updated', boxNoVal, data, changelog, currentUser, now, key);
                 }
                 showToast(`✅ ${boxNoVal} updated!`,'success');
             }
@@ -1496,17 +1497,17 @@ document.getElementById('crabDataForm').addEventListener('submit', async e=>{
 
             if(isSold){
                 const finalData={...data,soldAt:now,soldBy:currentUser};
-                await push(ref(db,'deletedCrabs'),finalData);
-                await writeLog('sold', boxNoVal, finalData, {}, currentUser, now);
+                const newRef = await push(ref(db,'deletedCrabs'),finalData);
+                await writeLog('sold', boxNoVal, finalData, {}, currentUser, now, newRef.key);
                 showToast(`🏷️ ${boxNoVal} recorded as Sold!`,'success');
             } else if(isDead){
                 const finalData={...data,diedAt:now,diedBy:currentUser};
-                await push(ref(db,'deletedCrabs'),finalData);
-                await writeLog('dead', boxNoVal, finalData, {}, currentUser, now);
+                const newRef = await push(ref(db,'deletedCrabs'),finalData);
+                await writeLog('dead', boxNoVal, finalData, {}, currentUser, now, newRef.key);
                 showToast(`💀 ${boxNoVal} recorded as Dead!`,'success');
             } else {
-                await push(ref(db,'crabs'),data);
-                await writeLog('added', boxNoVal, data, {}, currentUser, now);
+                const newRef = await push(ref(db,'crabs'),data);
+                await writeLog('added', boxNoVal, data, {}, currentUser, now, newRef.key);
                 showToast(`✅ ${boxNoVal} saved!`,'success');
             }
         }
@@ -1557,7 +1558,7 @@ window.deleteCrab=async(key,boxNo)=>{
                 createdAt:data.createdAt||data.timestamp,addedBy:data.addedBy||data.recordedBy||remover,
                 updatedAt:data.updatedAt||null,updatedBy:data.updatedBy||null};
             await set(ref(db,`deletedCrabs/${key}`),finalData);
-            await writeLog('removed', boxNo, finalData, {}, remover, Date.now());
+            await writeLog('removed', boxNo, finalData, {}, remover, Date.now(), key);
         }
         await set(ref(db,`crabs/${key}`),null);
         showToast(`✅ ${boxNo} deleted!`,'success');
