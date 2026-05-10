@@ -2599,10 +2599,20 @@ window.renderHistoryTable = () => {
     const boxNo=e.boxNo||'—';
     const archId=archivedCrabKeyForEvent(e);
     const boxEsc=(boxNo||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const evId=e.id||'';
+    const evDateIn=e.dateIn||'';
+    const evType=e.crabType||'';
+    const evClass=e.crabClass||'';
+    const evGender=e.gender||'';
+    const evOrigin=e.crabOrigin||'';
+    const evLoc=e.location||'';
+    const evOrigW=e.originWeight!=null?e.originWeight:'';
+    const evCurrW=e.currentWeight!=null?e.currentWeight:'';
     const actionCell = archId
       ? `<button class="tbl-btn success" title="Restore to healthy" onclick="restoreCrab('${archId}','${boxEsc}')" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">↩ Restore</button>
-         <button class="tbl-btn danger" title="Permanently delete" onclick="confirmDeleteRecord('${archId}','${boxEsc}',true)" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">🗑 Delete</button>`
-      : `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.68rem;font-weight:700;background:#d4edda;color:#155724;">● Active</span>`;
+         <button class="tbl-btn danger" title="Permanently delete" onclick="confirmDeleteRecord('${evId}','${boxEsc}','${evDateIn}','${evType}','${evClass}','${evGender}','${evOrigin}','${evLoc}','${evOrigW}','${evCurrW}')" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">🗑 Delete</button>`
+      : `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:10px;font-size:0.68rem;font-weight:700;background:#d4edda;color:#155724;">● Active</span>
+         <button class="tbl-btn danger" title="Permanently delete" onclick="confirmDeleteRecord('${evId}','${boxEsc}','${evDateIn}','${evType}','${evClass}','${evGender}','${evOrigin}','${evLoc}','${evOrigW}','${evCurrW}')" style="padding:0.18rem 0.5rem;font-size:0.7rem;margin:0;width:100%;height:22px;line-height:1;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">🗑 Delete</button>`;
 
     const seq = startIndex + idx + 1;
     return `<tr class="row-${action||'added'}">
@@ -2707,20 +2717,47 @@ async function purgeActivityLogForCrab(crab){
   }
 }
 
-window.confirmDeleteRecord=(key,boxNo,isArchived)=>{
-  showConfirm(`Permanently delete record for <strong>${boxNo}</strong>? This cannot be undone and will remove matching entries from the shared activity log (same as User History).`,async()=>{
+window.confirmDeleteRecord=(eventKey,boxNo,dateIn,crabType,crabClass,gender,crabOrigin,location,originWeight,currentWeight)=>{
+  showConfirm(`Permanently delete record for <strong>${boxNo}</strong>? This cannot be undone and will remove matching entries from the shared activity log and all matching crab records.`,async()=>{
     const{db,ref,set}=window._fb;
     try{
-      const source = isArchived===false ? (window._allCrabs||[]) : (window._deletedCrabs||[]);
-      const crab = source.find(c=>c.id===key) || { id:key, boxNo };
-      const removedLogs = await purgeActivityLogForCrab(crab);
-      if(isArchived===false){
-        await set(ref(db,`crabs/${key}`),null);
-      } else {
-        await set(ref(db,`deletedCrabs/${key}`),null);
-        await set(ref(db,`restoreHistory/${key}`),null);
+      // 1. Delete the specific activityLog entry
+      let removedLogs = 0;
+      if(eventKey){
+        await set(ref(db,`activityLog/${eventKey}`),null);
+        removedLogs = 1;
       }
-      showToast(`${boxNo} deleted${removedLogs?` • ${removedLogs} log entr${removedLogs!==1?'ies':'y'} removed`:''}`,'info');
+
+      // 2. Find and delete ALL matching crabs by box+date only
+      // (history events may have stale field values, so we match by the stable identifiers)
+      const boxUp = (boxNo||'').toUpperCase().trim();
+      const di = dateIn || '';
+
+      function matchesCrab(c){
+        if((c.boxNo||'').toUpperCase().trim() !== boxUp) return false;
+        if(di && (c.dateIn||'') !== di) return false;
+        return true;
+      }
+
+      const activeMatches = (window._allCrabs||[]).filter(matchesCrab);
+      const archiveMatches = (window._deletedCrabs||[]).filter(matchesCrab);
+      console.log(`[AdminDelete] box=${boxUp} date=${di} | active matches: ${activeMatches.length}, archive matches: ${archiveMatches.length}`, activeMatches.map(c=>c.id), archiveMatches.map(c=>c.id));
+
+      let delCrabs = 0;
+      for(const c of activeMatches){
+        await set(ref(db,`crabs/${c.id}`),null);
+        delCrabs++;
+      }
+      for(const c of archiveMatches){
+        await set(ref(db,`deletedCrabs/${c.id}`),null);
+        await set(ref(db,`restoreHistory/${c.id}`),null);
+        delCrabs++;
+      }
+
+      // 3. Also purge any remaining activityLog entries with same box+date
+      const logPurge = await purgeActivityLogForCrab({boxNo:boxNo,dateIn:di});
+
+      showToast(`${boxNo} deleted${removedLogs?' • 1 history entry':''}${delCrabs?` • ${delCrabs} crab record${delCrabs!==1?'s':''}`:''}${logPurge?` • ${logPurge} log entries`:''}`,'info');
       if (typeof filterHistory === 'function') filterHistory();
     }catch(e){showToast(e.message,'error');}
   });

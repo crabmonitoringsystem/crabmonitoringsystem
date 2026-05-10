@@ -751,6 +751,10 @@
                                 <option value="immature female">Immature Female</option>
                             </select>
                         </div>
+                        <div class="report-group">
+                            <label for="reportLocationFilter">Location/Site (Optional)</label>
+                            <input type="text" id="reportLocationFilter" placeholder="Filter by location/site...">
+                        </div>
                         <div class="report-actions">
                             <button class="btn btn-primary" id="reportToggleBtn" onclick="showReportData()">Show Data</button>
                         </div>
@@ -771,6 +775,7 @@
                                     <th>Box No.</th>
                                     <th>Type</th>
                                     <th>Status</th>
+                                    <th>Location</th>
                                     <th>Crab Origin</th>
                                     <th>Date In</th>
                                     <th>Date Sold</th>
@@ -1371,11 +1376,50 @@ function setDateInMax(){ document.getElementById('dateIn').max=getTodayString();
 function isBoxTaken(boxNoVal,excludeKey){ return (window._allCrabs||[]).some(c=>(c.boxNo||'').toUpperCase()===boxNoVal&&c.id!==excludeKey); }
 function hasBoxDateConflict(boxNoVal,dateInVal,excludeKey){
     const allRecords=[...(window._allCrabs||[]),...(window._deletedCrabs||[])];
-    return allRecords.some(c=>
+    // Find ALL records with same box+date (not just the first one)
+    const matches=allRecords.filter(c=>
         (c.boxNo||'').toUpperCase()===boxNoVal &&
         (c.dateIn||'')===dateInVal &&
         c.id!==excludeKey
     );
+    if(!matches.length) return { conflict:false };
+
+    // Current form values — compare only INTRINSIC identity fields
+    // (weights excluded: they change during a crab's lifecycle and shouldn't allow re-adding same crab)
+    const currentFields={
+        crabType:  (document.getElementById('crabType')?.value||'').toLowerCase(),
+        crabClass: (document.getElementById('crabClass')?.value||'').toLowerCase(),
+        gender:    (document.getElementById('gender')?.value||'').toLowerCase(),
+        crabOrigin:(document.getElementById('crabOrigin')?.value||'').toLowerCase(),
+        location:  (document.getElementById('location')?.value||'').toLowerCase()
+    };
+
+    for(const match of matches){
+        const matchFields={
+            crabType:  (match.crabType||'').toLowerCase(),
+            crabClass: (match.crabClass||'').toLowerCase(),
+            gender:    (match.gender||'').toLowerCase(),
+            crabOrigin:(match.crabOrigin||'').toLowerCase(),
+            location:  (match.location||'').toLowerCase()
+        };
+
+        const diffs=[];
+        if(currentFields.crabType   !== matchFields.crabType)   diffs.push(`type`);
+        if(currentFields.crabClass  !== matchFields.crabClass)  diffs.push(`class`);
+        if(currentFields.gender     !== matchFields.gender)     diffs.push(`gender`);
+        if(currentFields.crabOrigin !== matchFields.crabOrigin) diffs.push(`origin`);
+        if(currentFields.location   !== matchFields.location)   diffs.push(`location`);
+
+        const isDup = diffs.length===0;
+        const src = window._allCrabs.includes(match) ? 'Active' : 'Archive';
+        if(isDup){
+            console.log(`[DupCheck] BLOCKED by ${src} record ${match.id}`);
+            return { conflict:true, record:match, src };
+        } else {
+            console.log(`[DupCheck] Match ${match.id} (${src}) allowed — differs in:`, diffs.join(', '));
+        }
+    }
+    return { conflict:false };
 }
 
 /* FORM SUBMIT — ADD & EDIT (with activityLog) */
@@ -1385,8 +1429,16 @@ document.getElementById('crabDataForm').addEventListener('submit', async e=>{
     const key=window._editingKey, boxNoVal=document.getElementById('boxNo').value.trim().toUpperCase();
     const dateInVal=document.getElementById('dateIn').value, today=getTodayString();
     if(dateInVal>today){ showToast('❌ Date In cannot be a future date!','error'); btn.disabled=false; btn.innerHTML='💾 Save Data'; return; }
-    if(!key&&isBoxTaken(boxNoVal,null)){ showToast(`❌ Box ${boxNoVal} is already in use!`,'error'); btn.disabled=false; btn.innerHTML='💾 Save Data'; return; }
-    if(hasBoxDateConflict(boxNoVal,dateInVal,key||null)){ showToast(`❌ Duplicate detected: Box ${boxNoVal} with Date In ${dateInVal} already exists.`,'error'); btn.disabled=false; btn.innerHTML='💾 Save Data'; return; }
+    if(!key){
+        const dupCheck = hasBoxDateConflict(boxNoVal,dateInVal,null);
+        if(dupCheck.conflict){
+            const rec = dupCheck.record;
+            const recIdShort = (rec.id||'').slice(-6);
+            const recStatus = rec.weeklyStatus || 'unknown';
+            showToast(`❌ Duplicate blocked by ${dupCheck.src} record ${recIdShort} (status: ${recStatus}). Box ${boxNoVal} / ${dateInVal} already exists with identical data.`,'error');
+            btn.disabled=false; btn.innerHTML='💾 Save Data'; return;
+        }
+    }
     const currentUser=(()=>{ try{ return JSON.parse(sessionStorage.getItem('crabMonitoringSession'))?.username||'Unknown'; }catch{ return 'Unknown'; } })();
     const now=Date.now();
     const baseData={ dateIn:dateInVal, boxNo:boxNoVal, crabOrigin:document.getElementById('crabOrigin').value, gender:document.getElementById('gender').value, crabType:document.getElementById('crabType').value, crabClass:document.getElementById('crabClass').value, originWeight:parseFloat(document.getElementById('originWeight').value), currentWeight:parseFloat(document.getElementById('currentWeight').value), weeklyStatus:document.getElementById('weeklyStatus').value, location:document.getElementById('location').value, notes:document.getElementById('notes').value, timestamp:now, recordedBy:currentUser };
@@ -1534,6 +1586,7 @@ window.showReportData = () => {
     const originFilter = document.getElementById('reportOriginFilter').value.trim();
     const typeFilter = document.getElementById('reportTypeFilter').value;
     const genderFilter = document.getElementById('reportGenderFilter').value;
+    const locationFilter = document.getElementById('reportLocationFilter').value.trim();
 
     // Get data based on report type
     let data = [];
@@ -1613,6 +1666,11 @@ window.showReportData = () => {
         data = data.filter(c => (c.gender || '').toLowerCase() === genderFilter.toLowerCase());
     }
 
+    // Apply location/site filter
+    if (locationFilter) {
+        data = data.filter(c => (c.location || '').toLowerCase().includes(locationFilter.toLowerCase()));
+    }
+
     // Sort data by selected date type
     data.sort((a, b) => {
         let dateA = null, dateB = null;
@@ -1632,7 +1690,7 @@ window.showReportData = () => {
     // Store filtered data for PDF generation
     window._reportData = data;
     window._reportTitle = title;
-    window._reportFilters = { dateType, fromDate, toDate, originFilter, typeFilter, genderFilter };
+    window._reportFilters = { dateType, fromDate, toDate, originFilter, typeFilter, genderFilter, locationFilter };
 
     // Display results
     displayReportResults(data, title);
@@ -1655,7 +1713,7 @@ function displayReportResults(data, title) {
     countSpan.textContent = `${data.length} record${data.length !== 1 ? 's' : ''} found`;
 
     if (data.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="11" class="empty-state">No data found matching your criteria</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="12" class="empty-state">No data found matching your criteria</td></tr>';
     } else {
         const rows = data.map(crab => {
             const dateSold = crab.soldAt ? new Date(crab.soldAt).toLocaleDateString() : '—';
@@ -1666,6 +1724,7 @@ function displayReportResults(data, title) {
                 <td>${crab.boxNo || crab.id || '—'}</td>
                 <td>${crab.crabType || '—'}</td>
                 <td>${crab.weeklyStatus || '—'}</td>
+                <td>${crab.location || '—'}</td>
                 <td>${crab.crabOrigin || '—'}</td>
                 <td>${dateIn}</td>
                 <td>${dateSold}</td>
@@ -1705,166 +1764,125 @@ window.downloadReportPDF = async () => {
     }
 
     const { jsPDF } = window.jspdf;
-    // Landscape A4 — matches on-screen Summary of Inventory (11 columns)
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
     const margin = 8;
-    const tableLeft = margin;
     const tableW = pageW - margin * 2;
-    const headers = ['Box No.', 'Type', 'Status', 'Crab Origin', 'Date In', 'Date Sold', 'Mortality Date', 'Orig.Wt.', 'Curr.Wt.', 'Gender', 'Class'];
-    const colFracs = [0.09, 0.065, 0.09, 0.195, 0.085, 0.085, 0.09, 0.075, 0.075, 0.075, 0.075];
-    const colWidths = colFracs.map(f => f * tableW);
-    const cellPadX = 0.45;
-    const cellPadY = 0.35;
-    const headerFontSize = 6.5;
-    const bodyFontMax = 6;
-    const bodyFontMin = 4.5;
-    const maxLinesPerCell = 4;
     const maxY = pageH - margin;
 
+    // Column widths (mm) — portrait, 12 columns
+    const headers = ['Box No.', 'Type', 'Status', 'Location', 'Origin', 'Date In', 'Sold', 'Mortality', 'Orig.Wt.', 'Curr.Wt.', 'Gender', 'Class'];
+    const colWidths = [17, 12, 16, 22, 22, 19, 19, 19, 14, 14, 13, 13];
+    const headFS = 7;
+    const bodyFS = 7.5;
+    const cellPadY = 1.8;
+    const cellPadX = 1.2;
+
     function colX(i){
-        let x = tableLeft;
+        let x = margin;
         for (let j = 0; j < i; j++) x += colWidths[j];
         return x;
     }
+    function lineH(fs){ return fs * 0.42; }
+    function firstBase(fs){ return fs * 0.34; }
 
-    /** pt → approximate mm between baselines for table rows */
-    function lineGapPt(fs){
-        return fs * 0.41;
-    }
-    function firstBaselineFromTopPt(fs){
-        return fs * 0.34;
-    }
-
-    function splitCell(text, colIndex, fontSize){
-        doc.setFontSize(fontSize);
-        const maxW = Math.max(2, colWidths[colIndex] - 2 * cellPadX);
-        return doc.splitTextToSize(String(text), maxW);
-    }
-
-    function rowBodyLayout(rowData){
-        let fs = bodyFontMax;
-        for (; fs >= bodyFontMin; fs -= 0.5){
-            const layouts = rowData.map((cell, i) => splitCell(cell, i, fs));
-            const maxLn = Math.max(...layouts.map(l => l.length));
-            if (maxLn <= maxLinesPerCell) return { fs, layouts };
-        }
-        const layouts = rowData.map((cell, i) => splitCell(cell, i, bodyFontMin));
-        return { fs: bodyFontMin, layouts };
-    }
-
-    function rowHeightForLayouts(layouts, fs){
-        const maxLn = Math.max(...layouts.map(l => l.length), 1);
-        return maxLn * lineGapPt(fs) + 2 * cellPadY;
-    }
-
-    function drawHeaderRow(y){
-        doc.setDrawColor(90);
-        doc.setLineWidth(0.12);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(headerFontSize);
-        const headerLayouts = headers.map((h, i) => splitCell(h, i, headerFontSize));
-        const headerH = rowHeightForLayouts(headerLayouts, headerFontSize);
-        for (let i = 0; i < headers.length; i++){
-            doc.rect(colX(i), y, colWidths[i], headerH, 'S');
-            let by = y + cellPadY + firstBaselineFromTopPt(headerFontSize);
-            headerLayouts[i].forEach(line => {
-                doc.text(line, colX(i) + cellPadX, by);
-                by += lineGapPt(headerFontSize);
-            });
-        }
-        doc.setFont('helvetica', 'normal');
-        return y + headerH;
-    }
-
-    function drawBodyRowAt(y, rowData, fs, layouts){
-        const rowH = rowHeightForLayouts(layouts, fs);
-        doc.setDrawColor(120);
-        doc.setLineWidth(0.1);
+    function splitCell(text, maxW, fs){
         doc.setFontSize(fs);
-        doc.setFont('helvetica', 'normal');
-        for (let i = 0; i < rowData.length; i++){
-            doc.rect(colX(i), y, colWidths[i], rowH, 'S');
-            let by = y + cellPadY + firstBaselineFromTopPt(fs);
+        return doc.splitTextToSize(String(text || '—'), Math.max(2, maxW - 2 * cellPadX));
+    }
+
+    function drawRow(y, cells, fs, isHeader){
+        doc.setFontSize(fs);
+        doc.setFont('helvetica', isHeader ? 'bold' : 'normal');
+        const layouts = cells.map((c, i) => splitCell(c, colWidths[i], fs));
+        const maxLn = Math.max(...layouts.map(l => l.length), 1);
+        const rowH = maxLn * lineH(fs) + 2 * cellPadY;
+        // borders
+        doc.setDrawColor(isHeader ? 80 : 180);
+        doc.setLineWidth(isHeader ? 0.2 : 0.1);
+        let cx = margin;
+        for (let i = 0; i < cells.length; i++){
+            doc.rect(cx, y, colWidths[i], rowH, 'S');
+            cx += colWidths[i];
+        }
+        // text
+        for (let i = 0; i < cells.length; i++){
+            let by = y + cellPadY + firstBase(fs);
             layouts[i].forEach(line => {
                 doc.text(line, colX(i) + cellPadX, by);
-                by += lineGapPt(fs);
+                by += lineH(fs);
             });
         }
         return rowH;
     }
 
-    let yPos = margin + 6;
-    doc.setFontSize(16);
+    let yPos = margin + 5;
+    doc.setFontSize(15);
     doc.setFont('helvetica', 'bold');
     doc.text(title, margin, yPos);
     doc.setFont('helvetica', 'normal');
-    yPos += 8;
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, margin, yPos);
     yPos += 6;
-    doc.text(`Total records: ${data.length}`, margin, yPos);
-    yPos += 7;
-
     doc.setFontSize(9);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, margin, yPos);
+    yPos += 5;
+    doc.text(`Total Records: ${data.length}`, margin, yPos);
+    yPos += 6;
+
+    // filter line
+    const filterParts = [];
     if (filters.fromDate || filters.toDate) {
-        const dateTypeLabel = filters.dateType === 'dateIn' ? 'Date In' : (filters.dateType === 'dateDead' ? 'Mortality Date' : 'Date Sold');
-        let dateRange = `${dateTypeLabel} range: `;
-        if (filters.fromDate) dateRange += `from ${new Date(filters.fromDate).toLocaleDateString()}`;
-        if (filters.toDate) dateRange += ` to ${new Date(filters.toDate).toLocaleDateString()}`;
-        doc.text(dateRange, margin, yPos);
-        yPos += 5;
+        const dtl = filters.dateType === 'dateIn' ? 'Date In' : (filters.dateType === 'dateDead' ? 'Mortality Date' : 'Date Sold');
+        let dr = `${dtl}: `;
+        if (filters.fromDate) dr += `${new Date(filters.fromDate).toLocaleDateString()}`;
+        if (filters.toDate) dr += ` - ${new Date(filters.toDate).toLocaleDateString()}`;
+        filterParts.push(dr);
     }
-    if (filters.originFilter) {
-        doc.text(`Crab origin filter: ${filters.originFilter}`, margin, yPos);
-        yPos += 5;
-    }
-    if (filters.typeFilter) {
-        doc.text(`Crab type filter: ${filters.typeFilter}`, margin, yPos);
-        yPos += 5;
-    }
-    if (filters.genderFilter) {
-        doc.text(`Gender filter: ${capitalize(filters.genderFilter)}`, margin, yPos);
-        yPos += 5;
+    if (filters.originFilter) filterParts.push(`Origin: ${filters.originFilter}`);
+    if (filters.typeFilter) filterParts.push(`Type: ${filters.typeFilter}`);
+    if (filters.genderFilter) filterParts.push(`Gender: ${capitalize(filters.genderFilter)}`);
+    if (filters.locationFilter) filterParts.push(`Location: ${filters.locationFilter}`);
+    if (filterParts.length) {
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        const wrapped = doc.splitTextToSize('Filters: ' + filterParts.join('  |  '), tableW);
+        wrapped.forEach(line => { doc.text(line, margin, yPos); yPos += 4; });
+        doc.setTextColor(0);
+        yPos += 2;
     }
 
-    yPos += 3;
-    yPos = drawHeaderRow(yPos);
+    // Header row
+    yPos += drawRow(yPos, headers, headFS, true);
 
     data.forEach(crab => {
         const dateSold = crab.soldAt ? new Date(crab.soldAt).toLocaleDateString() : '—';
         const dateIn = crab.dateIn ? new Date(crab.dateIn).toLocaleDateString() : '—';
         const mortalityDate = reportMortalityDisplay(crab);
-
-        const rowData = [
+        const rowCells = [
             crab.boxNo || crab.id || '—',
             crab.crabType || '—',
-            crab.weeklyStatus || '—',
+            capitalize(crab.weeklyStatus || '—'),
+            crab.location || '—',
             crab.crabOrigin || '—',
             dateIn,
             dateSold,
             mortalityDate,
             crab.originWeight != null ? crab.originWeight + 'g' : '—',
             crab.currentWeight != null ? crab.currentWeight + 'g' : '—',
-            crab.gender || '—',
+            capitalize(crab.gender || '—'),
             crab.crabClass ? 'Class ' + crab.crabClass : '—'
         ];
-
-        const bodyLay = rowBodyLayout(rowData);
-        const nextRowH = rowHeightForLayouts(bodyLay.layouts, bodyLay.fs);
-        if (yPos + nextRowH > maxY) {
+        const rh = drawRow(yPos, rowCells, bodyFS, false);
+        if (yPos + rh > maxY) {
             doc.addPage();
             yPos = margin + 4;
-            yPos = drawHeaderRow(yPos);
+            yPos += drawRow(yPos, headers, headFS, true);
         }
-
-        yPos += drawBodyRowAt(yPos, rowData, bodyLay.fs, bodyLay.layouts);
+        yPos += rh;
     });
 
     const filename = `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(filename);
-
     showToast(`✅ PDF downloaded: ${data.length} records`, 'success');
 };
 
