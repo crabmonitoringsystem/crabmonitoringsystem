@@ -2572,23 +2572,64 @@ function archivedCrabKeyForEvent(e){
   return best.id;
 }
 
+function dateMatches(stored, target){
+  if(!stored || !target) return false;
+  if(stored===target) return true;
+  // Try normalizing both to YYYY-MM-DD
+  try{
+    const d1=new Date(stored), d2=new Date(target);
+    if(!isNaN(d1)&&!isNaN(d2)){
+      const n1=d1.toISOString().split('T')[0];
+      const n2=d2.toISOString().split('T')[0];
+      return n1===n2;
+    }
+  }catch(e){}
+  return false;
+}
+
+window.findBoxDate = async (boxNo) => {
+  const { db, ref, get } = window._fb;
+  const boxUp = (boxNo || '').toUpperCase().trim();
+  console.log(`[findBoxDate] Searching for ${boxUp}...`);
+  const results = [];
+
+  const activeSnap = await get(ref(db, 'crabs'));
+  if(activeSnap.exists()){
+    Object.entries(activeSnap.val()).forEach(([id,c])=>{
+      if((c.boxNo||'').toUpperCase().trim()===boxUp){
+        results.push({id, collection:'crabs', dateIn:c.dateIn, status:c.weeklyStatus});
+      }
+    });
+  }
+  const archiveSnap = await get(ref(db, 'deletedCrabs'));
+  if(archiveSnap.exists()){
+    Object.entries(archiveSnap.val()).forEach(([id,c])=>{
+      if((c.boxNo||'').toUpperCase().trim()===boxUp){
+        results.push({id, collection:'deletedCrabs', dateIn:c.dateIn, status:c.weeklyStatus});
+      }
+    });
+  }
+  console.table(results);
+  return results;
+};
+
 window.forceDeleteBoxDate = async (boxNo, dateIn) => {
-  const { db, ref, set, get, child } = window._fb;
+  const { db, ref, set, get } = window._fb;
   const boxUp = (boxNo || '').toUpperCase().trim();
   const di = dateIn || '';
   if (!boxUp || !di) { console.error('Usage: forceDeleteBoxDate("A3-01", "2026-03-20")'); return; }
 
   let removedCrabs = 0, removedLogs = 0;
 
-  // 1. Delete from active crabs
+  // 1. Delete from active crabs (exact or normalized date match)
   const activeSnap = await get(ref(db, 'crabs'));
   if (activeSnap.exists()) {
     const entries = Object.entries(activeSnap.val());
     for (const [id, c] of entries) {
-      if ((c.boxNo || '').toUpperCase().trim() === boxUp && (c.dateIn || '') === di) {
+      if ((c.boxNo || '').toUpperCase().trim() === boxUp && dateMatches(c.dateIn, di)) {
         await set(ref(db, `crabs/${id}`), null);
         removedCrabs++;
-        console.log(`[forceDelete] Removed active crab ${id}`);
+        console.log(`[forceDelete] Removed active crab ${id} (date: ${c.dateIn})`);
       }
     }
   }
@@ -2598,11 +2639,11 @@ window.forceDeleteBoxDate = async (boxNo, dateIn) => {
   if (archiveSnap.exists()) {
     const entries = Object.entries(archiveSnap.val());
     for (const [id, c] of entries) {
-      if ((c.boxNo || '').toUpperCase().trim() === boxUp && (c.dateIn || '') === di) {
+      if ((c.boxNo || '').toUpperCase().trim() === boxUp && dateMatches(c.dateIn, di)) {
         await set(ref(db, `deletedCrabs/${id}`), null);
         await set(ref(db, `restoreHistory/${id}`), null);
         removedCrabs++;
-        console.log(`[forceDelete] Removed archived crab ${id}`);
+        console.log(`[forceDelete] Removed archived crab ${id} (date: ${c.dateIn})`);
       }
     }
   }
@@ -2612,10 +2653,10 @@ window.forceDeleteBoxDate = async (boxNo, dateIn) => {
   if (logSnap.exists()) {
     const entries = Object.entries(logSnap.val());
     for (const [id, e] of entries) {
-      if ((e.boxNo || '').toUpperCase().trim() === boxUp && (e.dateIn || '') === di) {
+      if ((e.boxNo || '').toUpperCase().trim() === boxUp && dateMatches(e.dateIn, di)) {
         await set(ref(db, `activityLog/${id}`), null);
         removedLogs++;
-        console.log(`[forceDelete] Removed activityLog ${id}`);
+        console.log(`[forceDelete] Removed activityLog ${id} (date: ${e.dateIn})`);
       }
     }
   }
