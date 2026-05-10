@@ -2506,10 +2506,27 @@ function histStatusStyle(weeklyStatus, action){
 
 function archivedCrabKeyForEvent(e){
   const box=(e.boxNo||'').toUpperCase().trim();
+  const dateIn=e.dateIn||'';
   if(!box) return null;
-  const cand=(window._deletedCrabs||[]).filter(d=>(d.boxNo||'').toUpperCase().trim()===box);
+
+  // 1. Try exact match: box + dateIn
+  let cand=(window._deletedCrabs||[]).filter(d=>
+    (d.boxNo||'').toUpperCase().trim()===box &&
+    (d.dateIn||'')===dateIn
+  );
+
+  // 2. Fallback: match by box only (if date changed after archiving)
+  if(!cand.length){
+    cand=(window._deletedCrabs||[]).filter(d=>(d.boxNo||'').toUpperCase().trim()===box);
+  }
+
   if(!cand.length) return null;
-  if(cand.length===1) return cand[0].id;
+  if(cand.length===1){
+    console.log(`[archId] box=${box} date=${dateIn} → single match ${cand[0].id}`);
+    return cand[0].id;
+  }
+
+  // 3. Multiple candidates: pick closest by archive timestamp
   const ts=Number(e.eventTs)||0;
   let best=cand[0], bestDiff=Infinity;
   for(const d of cand){
@@ -2517,6 +2534,7 @@ function archivedCrabKeyForEvent(e){
     const diff=(t&&ts)?Math.abs(t-ts):Infinity;
     if(diff<bestDiff){ bestDiff=diff; best=d; }
   }
+  console.log(`[archId] box=${box} date=${dateIn} → picked ${best.id} from ${cand.length} candidates (diff=${bestDiff})`);
   return best.id;
 }
 
