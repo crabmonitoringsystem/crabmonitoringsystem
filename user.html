@@ -1374,16 +1374,6 @@ window.updateAgePreview=()=>{
     const age=ageLabel(days); preview.textContent=`⏱ Age: ${age.text} (${days} day${days!==1?'s':''})`;
 };
 function setDateInMax(){ document.getElementById('dateIn').max=getTodayString(); }
-function isBoxTaken(boxNoVal,excludeKey){ return (window._allCrabs||[]).some(c=>(c.boxNo||'').toUpperCase()===boxNoVal&&c.id!==excludeKey); }
-function hasBoxDateConflict(boxNoVal,dateInVal,excludeKey){
-    const allRecords=[...(window._allCrabs||[]),...(window._deletedCrabs||[])];
-    return allRecords.some(c=>
-        (c.boxNo||'').toUpperCase()===boxNoVal &&
-        (c.dateIn||'')===dateInVal &&
-        c.id!==excludeKey
-    );
-}
-
 /* FORM SUBMIT — ADD & EDIT (with activityLog) */
 document.getElementById('crabDataForm').addEventListener('submit', async e=>{
     e.preventDefault();
@@ -1398,9 +1388,6 @@ document.getElementById('crabDataForm').addEventListener('submit', async e=>{
     const isSold=baseData.weeklyStatus==='Sold', isDead=baseData.weeklyStatus==='Dead';
     try{
         const{db,ref,set,push,get}=window._fb;
-
-        if(!key&&isBoxTaken(boxNoVal,null)){ showToast(`❌ Box ${boxNoVal} is already in use!`,'error'); btn.disabled=false; btn.innerHTML='💾 Save Data'; return; }
-        if(hasBoxDateConflict(boxNoVal,dateInVal,key||null)){ showToast(`❌ Duplicate detected: Box ${boxNoVal} with Date In ${dateInVal} already exists.`,'error'); btn.disabled=false; btn.innerHTML='💾 Save Data'; return; }
 
         if(key){
             let existing=window._allCrabs.find(c=>c.id===key);
