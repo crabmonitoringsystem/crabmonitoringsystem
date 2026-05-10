@@ -2572,6 +2572,59 @@ function archivedCrabKeyForEvent(e){
   return best.id;
 }
 
+window.forceDeleteBoxDate = async (boxNo, dateIn) => {
+  const { db, ref, set, get, child } = window._fb;
+  const boxUp = (boxNo || '').toUpperCase().trim();
+  const di = dateIn || '';
+  if (!boxUp || !di) { console.error('Usage: forceDeleteBoxDate("A3-01", "2026-03-20")'); return; }
+
+  let removedCrabs = 0, removedLogs = 0;
+
+  // 1. Delete from active crabs
+  const activeSnap = await get(ref(db, 'crabs'));
+  if (activeSnap.exists()) {
+    const entries = Object.entries(activeSnap.val());
+    for (const [id, c] of entries) {
+      if ((c.boxNo || '').toUpperCase().trim() === boxUp && (c.dateIn || '') === di) {
+        await set(ref(db, `crabs/${id}`), null);
+        removedCrabs++;
+        console.log(`[forceDelete] Removed active crab ${id}`);
+      }
+    }
+  }
+
+  // 2. Delete from deletedCrabs
+  const archiveSnap = await get(ref(db, 'deletedCrabs'));
+  if (archiveSnap.exists()) {
+    const entries = Object.entries(archiveSnap.val());
+    for (const [id, c] of entries) {
+      if ((c.boxNo || '').toUpperCase().trim() === boxUp && (c.dateIn || '') === di) {
+        await set(ref(db, `deletedCrabs/${id}`), null);
+        await set(ref(db, `restoreHistory/${id}`), null);
+        removedCrabs++;
+        console.log(`[forceDelete] Removed archived crab ${id}`);
+      }
+    }
+  }
+
+  // 3. Delete matching activityLog entries
+  const logSnap = await get(ref(db, 'activityLog'));
+  if (logSnap.exists()) {
+    const entries = Object.entries(logSnap.val());
+    for (const [id, e] of entries) {
+      if ((e.boxNo || '').toUpperCase().trim() === boxUp && (e.dateIn || '') === di) {
+        await set(ref(db, `activityLog/${id}`), null);
+        removedLogs++;
+        console.log(`[forceDelete] Removed activityLog ${id}`);
+      }
+    }
+  }
+
+  console.log(`[forceDelete] DONE: ${removedCrabs} crab records, ${removedLogs} log entries deleted.`);
+  showToast(`${boxUp} / ${di} force-deleted: ${removedCrabs} crabs, ${removedLogs} logs`, 'info');
+  if (typeof filterHistory === 'function') filterHistory();
+};
+
 window.filterHistory=()=>{
   const q=(document.getElementById('histSearch')?.value||'').toLowerCase();
   const action=document.getElementById('histAction')?.value||'';
